@@ -13,7 +13,7 @@ export default function Header() {
     <header className="z-50 border-b border-line bg-background/80 backdrop-blur-md lg:sticky lg:top-0">
       <Container className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 py-5">
         <Link href="/" className="text-[2rem] leading-none tracking-[-0.04em]">
-          FareLock
+          FareLocker
         </Link>
 
         {/* Between the logo and the buttons on desktop; its own row on a phone. */}

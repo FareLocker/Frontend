@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "FareLock: never overpay for a flight",
+  title: "FareLocker: never overpay for a flight",
   description:
     "Lock today's fare for a small fee. If the price goes up, you still pay the locked price. If it goes down, you pay less.",
 };

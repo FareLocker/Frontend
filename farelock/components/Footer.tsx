@@ -25,7 +25,7 @@ export default function Footer() {
       <Container className="pt-24 pb-8">
         <div className="grid gap-8 md:grid-cols-12">
           <div className="flex flex-col gap-4 md:col-span-6">
-            <p className="text-lg tracking-[-0.02em]">FareLock</p>
+            <p className="text-lg tracking-[-0.02em]">FareLocker</p>
             <p className="max-w-[300px] text-muted">
               Lock today&apos;s fare. Book when you&apos;re ready.
             </p>
@@ -54,7 +54,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-16 flex flex-wrap justify-between gap-x-8 gap-y-2 border-t border-line pt-4 text-[0.7rem] uppercase text-muted">
-          <span>© FareLock</span>
+          <span>© FareLocker</span>
           <span>All rights reserved</span>
         </div>
       </Container>

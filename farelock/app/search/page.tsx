@@ -1,45 +1,66 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Container from "@/components/Container";
-import Label from "@/components/Label";
+import FareSearchList, {
+  FareSearchListSkeleton,
+} from "@/components/search/FareSearchList";
+import SearchResultsHeader, {
+  SearchHeading,
+} from "@/components/search/SearchResultsHeader";
+import { searchFares } from "@/lib/fares";
 
 export const metadata: Metadata = {
-  title: "Search | FareLock",
+  title: "Search | FareLocker",
 };
 
+type SearchParams = PageProps<"/search">["searchParams"];
+
 /*
- * PLACEHOLDER. This file was empty, which stops the whole app from building,
- * so it now renders a holding message and echoes the query the header search
- * bar sent. Replace it with the real results page.
+ * The query comes from the URL (/search?q=…), which is only known when a
+ * request arrives. Everything that depends on it sits inside <Suspense>, so
+ * the page frame and the plane appear instantly and the heading and results
+ * stream in after.
  */
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <main className="flex-1">
-      <Container className="flex flex-col gap-6 py-20 md:py-32">
-        <Label>Search</Label>
-        <h1 className="text-[clamp(2.5rem,6vw,5rem)] leading-[0.95] tracking-[-0.02em]">
-          Search isn&apos;t connected yet.
-        </h1>
-        {/* The query is only known at request time, so it streams in. */}
-        <Suspense fallback={null}>
-          <Query searchParams={searchParams} />
+      <SearchResultsHeader>
+        <Suspense fallback={<SearchHeading title="Searching…" />}>
+          <ResultsHeading searchParams={searchParams} />
+        </Suspense>
+      </SearchResultsHeader>
+
+      <Container className="pt-10 pb-24">
+        <Suspense fallback={<FareSearchListSkeleton />}>
+          <Results searchParams={searchParams} />
         </Suspense>
       </Container>
     </main>
   );
 }
 
-async function Query({
-  searchParams,
-}: Pick<PageProps<"/search">, "searchParams">) {
+async function readQuery(searchParams: SearchParams): Promise<string> {
   const { q } = await searchParams;
-  const query = (Array.isArray(q) ? q[0] : q)?.trim();
-  if (!query) return null;
+  return (Array.isArray(q) ? q[0] : q)?.trim() ?? "";
+}
 
-  return (
-    <p className="max-w-[600px] text-2xl font-light text-soft">
-      You searched for &ldquo;{query}&rdquo;. Results will appear here once
-      live fares are wired in.
-    </p>
-  );
+async function ResultsHeading({ searchParams }: { searchParams: SearchParams }) {
+  const query = await readQuery(searchParams);
+  if (!query) {
+    return (
+      <SearchHeading
+        title="Search fares"
+        summary="Type a city, airline or airport in the search bar."
+      />
+    );
+  }
+  const fares = await searchFares(query);
+  const count = fares.length === 1 ? "1 fare" : `${fares.length} fares`;
+  return <SearchHeading title={query} summary={count} />;
+}
+
+async function Results({ searchParams }: { searchParams: SearchParams }) {
+  const query = await readQuery(searchParams);
+  if (!query) return null;
+  return <FareSearchList fares={await searchFares(query)} />;
 }
