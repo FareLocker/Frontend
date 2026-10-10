@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "FareLocker: never overpay for a flight",
   description:
     "Lock today's fare for a small fee. If the price goes up, you still pay the locked price. If it goes down, you pay less.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
