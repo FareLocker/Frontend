@@ -9,10 +9,10 @@ export const TBD = {
   coverLimit: "[COVER LIMIT]",
   /** What happens to the fee if the customer never books. */
   refundTerms: "[REFUND TERMS]",
-  /** Why sign-up asks for a phone number, e.g. "texts when your fare moves". */
-  phonePurpose: "[PHONE NUMBER PURPOSE]",
-  /** The fewest characters a password may have, e.g. "8". */
-  passwordMinLength: "[N]",
+  /** How long a lock's price or an exercise payout is held, e.g. "2 minutes". */
+  quoteHold: "[HOLD TIME]",
+  /** Taxes and charges on a lock fee, if any, e.g. "$0". */
+  lockTaxes: "[TAXES]",
   /** Card processor shown in the trust strip, e.g. "Stripe". */
   paymentProvider: "[PAYMENT PROVIDER]",
   /** Worked example: fill all four from one real route and date. */

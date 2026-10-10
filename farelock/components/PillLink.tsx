@@ -23,6 +23,12 @@ export const pillClass = {
  */
 export const solidButtonClass = `flex min-h-[60px] cursor-pointer items-center justify-center rounded-full bg-foreground px-6 text-center text-[1.05rem] font-semibold tracking-[-0.01em] text-background transition-colors duration-300 hover:bg-accent ${focusRing}`;
 
+/**
+ * The same solid white button, a size down, for when it sits in a row with
+ * pills (the Exercise button on My locks).
+ */
+export const solidButtonSmallClass = `flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-foreground px-[26px] text-center text-[0.9rem] font-semibold tracking-[-0.01em] text-background transition-colors duration-300 hover:bg-accent ${focusRing}`;
+
 export default function PillLink({
   href,
   children,

@@ -14,12 +14,17 @@ export default function PasswordField({
   label = "Password",
   name = "password",
   autoComplete,
+  minLength,
+  maxLength,
   hint,
   error,
 }: {
   label?: string;
   name?: string;
   autoComplete: "new-password" | "current-password";
+  /** Fewest and most characters allowed. The browser checks both. */
+  minLength?: number;
+  maxLength?: number;
   hint?: ReactNode;
   error?: string;
 }) {
@@ -34,6 +39,8 @@ export default function PasswordField({
           name={name}
           type={shown ? "text" : "password"}
           autoComplete={autoComplete}
+          minLength={minLength}
+          maxLength={maxLength}
           required
           aria-describedby={describedBy(id, hint, error)}
           aria-invalid={error ? true : undefined}

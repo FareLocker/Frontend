@@ -3,10 +3,16 @@
 import { useId, useRef } from "react";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import Label from "@/components/Label";
-import { pillClass, solidButtonClass } from "@/components/PillLink";
+import { pillClass, solidButtonClass, solidButtonSmallClass } from "@/components/PillLink";
+import { TBD } from "@/lib/placeholders";
 
-/** The figures the confirmation shows, already formatted for display. */
+/**
+ * The figures the confirmation shows, already formatted for display. Build
+ * one with exerciseSummary() in lib/locks.ts.
+ */
 export type ExerciseSummary = {
+  /** Which lock this is, for the request that exercises it. */
+  lockId: string;
   /** e.g. "New York to Lisbon · Tue 12 Jan" */
   flight: string;
   lockedFare: string;
@@ -29,6 +35,11 @@ export type ExerciseSummary = {
  * on Escape. A <form method="dialog"> closes it when one of its buttons is
  * pressed.
  *
+ * BACKEND NOTE (COMPLETED02): POST /locks/{lock_id}/exercise (bearer token)
+ * exists. It returns { status, settle_fare_cents, payout_cents,
+ * balance_cents, ... } or 422 with code fare_not_below_strike,
+ * lock_not_open, past_exercise_window or fare_unavailable. Not wired yet.
+ *
  * LATER (exercise): nothing is sent anywhere yet, so "Exercise and receive"
  * only closes the dialog. When the backend exists:
  *   1. Give that button's form a server action that exercises the lock, in
@@ -36,10 +47,24 @@ export type ExerciseSummary = {
  *   2. Have the backend fix the payout for a short time when the dialog
  *      opens, and show how long is left, because the fare can move while the
  *      visitor is reading.
- *   3. Afterwards, show that the lock is finished and the money is in the
- *      wallet. That screen has not been designed.
+ *   3. Afterwards, refresh the page. The lock's status is no longer "open",
+ *      so the fare page shows it as ended (LockOutcomeCard) and My locks
+ *      moves it out of the active ones.
  */
-export default function ExerciseLock({ summary }: { summary: ExerciseSummary }) {
+export default function ExerciseLock({
+  summary,
+  size = "lg",
+  label = "Exercise lock",
+}: {
+  summary: ExerciseSummary;
+  /**
+   * "lg": the full-width main button, as on the fare page.
+   * "md": a smaller one that sits in a row of buttons, as on My locks.
+   */
+  size?: "lg" | "md";
+  /** The opening button's words. */
+  label?: string;
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -48,9 +73,9 @@ export default function ExerciseLock({ summary }: { summary: ExerciseSummary }) 
       <button
         type="button"
         onClick={() => dialogRef.current?.showModal()}
-        className={`${solidButtonClass} w-full`}
+        className={size === "lg" ? `${solidButtonClass} w-full` : solidButtonSmallClass}
       >
-        Exercise lock
+        {label}
       </button>
 
       <dialog
@@ -117,6 +142,8 @@ export default function ExerciseLock({ summary }: { summary: ExerciseSummary }) 
           </p>
 
           <form method="dialog" className="flex flex-col gap-3">
+            {/* Goes with the form once it has a server action. */}
+            <input type="hidden" name="lockId" value={summary.lockId} />
             <button type="submit" className={`${solidButtonClass} w-full`}>
               Exercise and receive {summary.payout}
             </button>
@@ -124,6 +151,10 @@ export default function ExerciseLock({ summary }: { summary: ExerciseSummary }) 
               Keep my lock
             </button>
           </form>
+
+          <p className="text-center text-xs leading-normal text-muted">
+            Payout held for {TBD.quoteHold}. After that we re-check the fare.
+          </p>
         </div>
       </dialog>
     </>

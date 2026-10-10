@@ -7,10 +7,16 @@ import PillLink from "@/components/PillLink";
  * The small header on log in and sign up: the logo, and one prompt that
  * leads to the other page.
  *
- *   <AuthHeader prompt="Don't have an account?" href="/signup" action="Create account" />
+ *   <AuthHeader prompt="Don't have an account?" href="/register" action="Create account" />
  *
  * It is the same height and style as the site header (Header.tsx), without
  * the search bar and nav.
+ *
+ * `data-own-header` marks a header that stands in for the site header. It
+ * only matters if the site header is still added to every page by
+ * app/layout.tsx: a rule at the end of app/globals.css then hides the site
+ * header on any page that has one of these. Where pages are sorted into
+ * (site) and (auth) folders instead, nothing reads it.
  */
 export default function AuthHeader({
   prompt,
@@ -24,7 +30,7 @@ export default function AuthHeader({
   action: string;
 }) {
   return (
-    <header className="z-50 border-b border-line bg-background/80 backdrop-blur-md lg:sticky lg:top-0">
+    <header data-own-header className="z-50 border-b border-line bg-background/80 backdrop-blur-md lg:sticky lg:top-0">
       <Container className="flex min-h-[5.5rem] flex-wrap items-center justify-between gap-x-8 gap-y-4 py-5">
         <Link
           href="/"

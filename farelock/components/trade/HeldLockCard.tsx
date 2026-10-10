@@ -1,28 +1,20 @@
 import Card from "@/components/Card";
 import DetailList, { DetailRow } from "@/components/DetailList";
-import { formatDate, formatMoney, formatTime } from "@/lib/format";
-import { canExercise, fareDrop, lockValue, maxGain } from "@/lib/locks";
-import type { FareDetail } from "@/types/fare";
-import type { HeldLock } from "@/types/lock";
+import { formatMoney } from "@/lib/format";
+import { canExercise, exerciseSummary, fareDrop, lockValue, maxGain } from "@/lib/locks";
+import type { Lock } from "@/types/lock";
 import ExerciseLock from "./ExerciseLock";
 
 /**
- * "Your lock": shown in place of the order ticket (LockTicket) once the
- * visitor holds a lock on this fare. It says what the lock is worth right
- * now and carries the Exercise button.
+ * "Your lock": shown in place of the order ticket (LockTicket) while the
+ * member holds an open lock on this fare. It says what the lock is worth
+ * right now and carries the Exercise button.
  *
  * The button works while the fare is at or below the locked fare. Above it
  * the lock is worth nothing, so the button is greyed out and the reason is
  * written underneath.
  */
-export default function HeldLockCard({
-  fare,
-  lock,
-}: {
-  fare: FareDetail;
-  lock: HeldLock;
-}) {
-  const value = lockValue(lock.lockedFare, fare.fare);
+export default function HeldLockCard({ lock }: { lock: Lock }) {
   const reasonId = `exercise-unavailable-${lock.id}`;
 
   return (
@@ -31,13 +23,9 @@ export default function HeldLockCard({
 
       <DetailList>
         <DetailRow label="Locked fare">{formatMoney(lock.lockedFare)}</DetailRow>
-        <DetailRow label="Fare now">{formatMoney(fare.fare)}</DetailRow>
-        <DetailRow label="Lock lasts">
-          Until departure
-          <span className="block font-normal text-muted">
-            {formatDate(fare.depart.localTime)},{" "}
-            {formatTime(fare.depart.localTime)}
-          </span>
+        <DetailRow label="Fare now">{formatMoney(lock.fare)}</DetailRow>
+        <DetailRow label="Difference">
+          {formatMoney(fareDrop(lock.lockedFare, lock.fare))}
         </DetailRow>
         <DetailRow label="Most you can gain">
           {formatMoney(maxGain(lock.lockedFare))}
@@ -50,22 +38,13 @@ export default function HeldLockCard({
           Lock value now
         </span>
         <span className="text-[2.75rem] leading-none font-extralight tracking-[-0.05em] tabular-nums">
-          {formatMoney(value)}
+          {formatMoney(lockValue(lock.lockedFare, lock.fare))}
         </span>
       </div>
 
-      {canExercise(lock.lockedFare, fare.fare) ? (
+      {canExercise(lock) ? (
         <>
-          <ExerciseLock
-            summary={{
-              flight: `${fare.depart.city} to ${fare.arrive.city} · ${formatDate(fare.depart.localTime)}`,
-              lockedFare: formatMoney(lock.lockedFare),
-              fareNow: formatMoney(fare.fare),
-              difference: formatMoney(fareDrop(lock.lockedFare, fare.fare)),
-              maxGain: formatMoney(maxGain(lock.lockedFare)),
-              payout: formatMoney(value),
-            }}
-          />
+          <ExerciseLock summary={exerciseSummary(lock)} />
           <p className="text-center text-xs leading-normal font-medium text-muted">
             The fare is at or below your locked fare
           </p>
