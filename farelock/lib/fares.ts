@@ -1,153 +1,130 @@
 import { cache } from "react";
-import type { FareDetail, FarePoint, FareSearchResult } from "@/types/fare";
+import { api } from "@/lib/api";
+import type {
+  FareDetail,
+  FarePoint,
+  FareSearchResult,
+  FlightEndpoint,
+} from "@/types/fare";
 
 /*
- * Where fare data comes from.
+ * Where fare data comes from: the backend's /fares endpoints.
  *
- * PLACEHOLDER: there is no backend yet, so both functions answer from the
- * mock fares at the bottom of this file. Replace the two function bodies with
- * real requests; pages and components only depend on the types.
+ * The backend sends the same information the frontend types describe, but in
+ * Python-style names (airline_name, fare_cents). The to… functions at the
+ * bottom rename them. Prices are cents on both sides.
  *
  * Both are wrapped in React's cache() so several components can ask for the
  * same thing during one page render without fetching twice.
  */
 
-/** Fares matching a search. Every non-empty query returns the same mocks. */
+/** Fares matching a search, e.g. "atl to lax nov 20". */
 export const searchFares = cache(
   async (query: string): Promise<FareSearchResult[]> => {
     if (!query.trim()) return [];
-    return MOCK_FARES;
+    try {
+      const data = await api<{ results: BackendFare[] }>("/fares/search", {
+        method: "POST",
+        body: JSON.stringify({ query }),
+      });
+      return data.results.map(toFare);
+    } catch (error) {
+      // 422: the backend couldn't read the query. 503: flight search is down.
+      console.error("Search failed:", error);
+      return [];
+    }
   },
 );
 
 /** One fare for the trading page, or null if the id is unknown. */
 export const getFare = cache(async (id: string): Promise<FareDetail | null> => {
-  return MOCK_FARES.find((fare) => fare.id === id) ?? null;
+  let data: BackendFareDetail;
+  try {
+    data = await api<BackendFareDetail>(`/fares/${encodeURIComponent(id)}`);
+  } catch (error) {
+    // 404: the fare was never returned by a search, so the backend has no copy.
+    console.error("Fare lookup failed:", error);
+    return null;
+  }
+
+  const fare = toFare(data.fare);
+  const history: FarePoint[] = data.history.map((point) => ({
+    date: point.date,
+    amount: point.amount_cents,
+  }));
+  return {
+    ...fare,
+    // The chart needs at least one point, so fall back to today's fare.
+    history: history.length
+      ? history
+      : [{ date: new Date().toISOString().slice(0, 10), amount: fare.fare.amount }],
+    // The backend doesn't have these yet.
+    aircraft: "—",
+    baggage: "—",
+    fareRules: "—",
+    weeklyMovePercent: Math.abs(fare.trend.changePercent),
+  };
 });
 
-// ------------------------------------------------------------------ mocks
+// ------------------------------------------------------- backend shapes
 
-/** The last day of every mock history. Fixed, so mocks never change. */
-const MOCK_LAST_DAY = Date.UTC(2026, 9, 9);
+/** One fare as the backend sends it (FareSearchResultResponse in schemas.py). */
+type BackendFare = {
+  id: string;
+  airline_name: string;
+  flight_number: string;
+  cabin_class: string;
+  stop_airports: string[];
+  depart: BackendEndpoint;
+  arrive: BackendEndpoint;
+  duration_minutes: number;
+  fare_cents: number;
+  lock: { fee_cents: number } | null;
+  trend: { points_cents: number[]; change_percent: number };
+};
 
-/** A repeatable daily fare history, so mock charts look the same each load. */
-function mockHistory(
-  seed: number,
-  startCents: number,
-  driftPerDay: number,
-  days = 90,
-): FarePoint[] {
-  const points: FarePoint[] = [];
-  for (let day = 0; day < days; day++) {
-    const wobble =
-      Math.sin(day * 0.9 + seed) * 1400 +
-      Math.sin(day * 0.37 + seed * 2) * 2200 +
-      Math.sin(day * 0.11 + seed * 3) * 2600;
-    const date = new Date(MOCK_LAST_DAY - (days - 1 - day) * 86_400_000);
-    points.push({
-      date: date.toISOString().slice(0, 10),
-      amount: Math.round(startCents + driftPerDay * day + wobble),
-    });
-  }
-  return points;
-}
+type BackendEndpoint = {
+  airport_code: string;
+  airport_name: string;
+  city: string;
+  local_time: string;
+};
 
-/** Fill in the parts of a mock that follow from its history. */
-function mockFare(
-  fare: Omit<FareDetail, "trend" | "fare"> & { changePercent: number },
-): FareDetail {
-  const { changePercent, ...rest } = fare;
-  const amounts = fare.history.map((point) => point.amount);
+/** GET /fares/{id} (FareDetailResponse in schemas.py). */
+type BackendFareDetail = {
+  fare: BackendFare;
+  history: { date: string; amount_cents: number }[];
+};
+
+// ---------------------------------------------------- backend → frontend
+
+function toFare(fare: BackendFare): FareSearchResult {
+  const amount = fare.fare_cents;
+  const points = fare.trend.points_cents;
   return {
-    ...rest,
-    // Today's fare is the last point of the history, rounded to a dollar.
-    fare: {
-      amount: Math.round(amounts[amounts.length - 1] / 100) * 100,
-      currency: "USD",
+    id: fare.id,
+    airlineName: fare.airline_name,
+    flightNumber: fare.flight_number,
+    cabinClass: fare.cabin_class,
+    stopAirports: fare.stop_airports,
+    depart: toEndpoint(fare.depart),
+    arrive: toEndpoint(fare.arrive),
+    durationMinutes: fare.duration_minutes,
+    fare: { amount, currency: "USD" },
+    lock: fare.lock ? { fee: { amount: fare.lock.fee_cents, currency: "USD" } } : null,
+    trend: {
+      // A line needs two points. New fares have little history, so draw it flat.
+      points: points.length >= 2 ? points : [amount, amount],
+      changePercent: fare.trend.change_percent,
     },
-    trend: { points: amounts.slice(-30), changePercent },
   };
 }
 
-const JFK = {
-  airportCode: "JFK",
-  airportName: "John F. Kennedy International",
-  city: "New York",
-};
-const LIS = {
-  airportCode: "LIS",
-  airportName: "Humberto Delgado Airport",
-  city: "Lisbon",
-};
-
-const MOCK_FARES: FareDetail[] = [
-  mockFare({
-    id: "jfk-lis-2027-01-12-ma202",
-    airlineName: "Mock Atlantic",
-    flightNumber: "MA 202",
-    cabinClass: "Economy",
-    stopAirports: [],
-    depart: { ...JFK, localTime: "2027-01-12T18:30" },
-    arrive: { ...LIS, localTime: "2027-01-13T06:25" },
-    durationMinutes: 415,
-    lock: { fee: { amount: 2200, currency: "USD" } },
-    history: mockHistory(1, 47000, 130),
-    changePercent: 3.1,
-    aircraft: "Sample A330-900",
-    baggage: "1 carry-on, 1 checked bag",
-    fareRules: "Changes for a fee, non-refundable",
-    weeklyMovePercent: 4.2,
-  }),
-  mockFare({
-    id: "jfk-lis-2027-01-12-ma118",
-    airlineName: "Mock Atlantic",
-    flightNumber: "MA 118",
-    cabinClass: "Economy",
-    stopAirports: [],
-    depart: { ...JFK, localTime: "2027-01-12T07:40" },
-    arrive: { ...LIS, localTime: "2027-01-12T19:55" },
-    durationMinutes: 435,
-    lock: { fee: { amount: 2400, currency: "USD" } },
-    history: mockHistory(2, 52000, 105),
-    changePercent: 1.4,
-    aircraft: "Sample A321neo",
-    baggage: "1 carry-on",
-    fareRules: "Changes for a fee, non-refundable",
-    weeklyMovePercent: 3.1,
-  }),
-  mockFare({
-    id: "jfk-lis-2027-01-12-sa6252",
-    airlineName: "Sample Air",
-    flightNumber: "SA 6252",
-    cabinClass: "Economy",
-    stopAirports: ["MAD"],
-    depart: { ...JFK, localTime: "2027-01-12T21:15" },
-    arrive: { ...LIS, localTime: "2027-01-13T12:40" },
-    durationMinutes: 625,
-    lock: { fee: { amount: 1900, currency: "USD" } },
-    history: mockHistory(3, 63000, -95),
-    changePercent: -2.6,
-    aircraft: "Sample 787-9",
-    baggage: "1 carry-on, 1 checked bag",
-    fareRules: "Free changes, non-refundable",
-    weeklyMovePercent: 5.6,
-  }),
-  mockFare({
-    id: "jfk-lis-2027-01-12-ea178",
-    airlineName: "Example Airways",
-    flightNumber: "EA 178",
-    cabinClass: "Premium economy",
-    stopAirports: ["LHR"],
-    depart: { ...JFK, localTime: "2027-01-12T16:05" },
-    arrive: { ...LIS, localTime: "2027-01-13T08:50" },
-    durationMinutes: 705,
-    lock: null,
-    // Tracked for under two weeks: shows the page with a short history.
-    history: mockHistory(4, 64000, 18, 12),
-    changePercent: 0,
-    aircraft: "Sample 777-200",
-    baggage: "2 carry-on, 2 checked bags",
-    fareRules: "Free changes, refundable for a fee",
-    weeklyMovePercent: 1.8,
-  }),
-];
+function toEndpoint(endpoint: BackendEndpoint): FlightEndpoint {
+  return {
+    airportCode: endpoint.airport_code,
+    airportName: endpoint.airport_name,
+    city: endpoint.city,
+    localTime: endpoint.local_time,
+  };
+}
