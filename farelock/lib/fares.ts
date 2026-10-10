@@ -15,12 +15,10 @@ import type {
  * Python-style names (airline_name, fare_cents). The to… functions at the
  * bottom rename them. Prices are cents on both sides.
  *
- * Price charts come from two sources:
- * - Search cards: each flight's own tracked prices (fare_observations, sent
- *   as trend.points_cents). A fare with fewer than two draws a flat line.
- * - The fare page: GET /fares/price-history, Google Flights' daily lowest
- *   fare for the flight's route and date (Google keeps no history for one
- *   exact flight). Falls back to the tracked prices if Google has none.
+ * Price charts on both pages are that flight's own tracked prices: the
+ * scraper's fare_observations, sent as trend.points_cents on search results
+ * and as history on the fare page. They only go back as far as the scraper
+ * does, and grow every day it runs.
  *
  * Everything is wrapped in React's cache() so several components can ask for
  * the same thing during one page render without fetching twice.
@@ -68,17 +66,10 @@ export const getFare = cache(async (id: string): Promise<FareDetail | null> => {
     amount: point.amount_cents,
   }));
 
-  // Google's history for this flight's route and date comes first; our own
-  // tracked prices are the fallback when Google has none.
-  const google = await routeHistoryFor(fare);
-
-  const history =
-    google.length >= 2
-      ? google
-      : tracked.length
-        ? tracked
-        : // The chart needs at least one point, so fall back to today's fare.
-          [{ date: new Date().toISOString().slice(0, 10), amount: fare.fare.amount }];
+  const history = tracked.length
+    ? tracked
+    : // The chart needs at least one point, so fall back to today's fare.
+      [{ date: new Date().toISOString().slice(0, 10), amount: fare.fare.amount }];
   const trend = history.length >= 2 ? trendFrom(history) : fare.trend;
 
   return {
@@ -94,47 +85,6 @@ export const getFare = cache(async (id: string): Promise<FareDetail | null> => {
 });
 
 // ------------------------------------------------------------ price history
-
-/**
- * Google's daily lowest fare for a route and date, oldest first, or [] if
- * there is none or the call fails (the endpoint answers 502 when Google
- * doesn't). Takes plain strings so cache() can match repeat calls.
- */
-const getRouteHistory = cache(
-  async (
-    origin: string,
-    destination: string,
-    departureDate: string,
-    flightNumber: string,
-  ): Promise<FarePoint[]> => {
-    const query = new URLSearchParams({
-      origin,
-      destination,
-      departure_date: departureDate,
-      flight_number: flightNumber,
-    });
-    try {
-      const data = await api<BackendPriceHistory>(`/fares/price-history?${query}`);
-      return data.price_history.map((point) => ({
-        date: point.date,
-        amount: point.amount_cents,
-      }));
-    } catch (error) {
-      console.error("Price history failed:", error);
-      return [];
-    }
-  },
-);
-
-/** The route history for a fare's route and departure date. */
-function routeHistoryFor(fare: FareSearchResult): Promise<FarePoint[]> {
-  return getRouteHistory(
-    fare.depart.airportCode,
-    fare.arrive.airportCode,
-    fare.depart.localTime.slice(0, 10), // "2026-11-20T09:50" → "2026-11-20"
-    fare.flightNumber,
-  );
-}
 
 /** How many days a search card's small chart shows. */
 const CARD_TREND_DAYS = 30;
@@ -193,14 +143,6 @@ type BackendEndpoint = {
 type BackendFareDetail = {
   fare: BackendFare;
   history: { date: string; amount_cents: number }[];
-};
-
-/** GET /fares/price-history (GooglePriceHistoryResponse in schemas.py). */
-type BackendPriceHistory = {
-  price_level: "low" | "typical" | "high" | "";
-  /** Dollars, not cents. */
-  typical_price_range: [number, number] | null;
-  price_history: { date: string; amount_cents: number }[];
 };
 
 // ---------------------------------------------------- backend → frontend
