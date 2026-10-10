@@ -27,7 +27,17 @@ export function shimmer(amount = 0.08): number {
   return (Math.random() - 0.5) * amount;
 }
 
+/** A colour token from globals.css (e.g. "--accent"), as the browser has it. */
+export function themeColor(element: Element, token: string, fallback: string): string {
+  return getComputedStyle(element).getPropertyValue(token).trim() || fallback;
+}
+
 /** The site's accent colour, read from the --accent CSS variable. */
 export function accentColor(element: Element): string {
-  return getComputedStyle(element).getPropertyValue("--accent").trim() || "#ffbf00";
+  return themeColor(element, "--accent", "#ffbf00");
+}
+
+/** The page's background colour, read from the --background CSS variable. */
+export function backgroundColor(element: Element): string {
+  return themeColor(element, "--background", "#111111");
 }

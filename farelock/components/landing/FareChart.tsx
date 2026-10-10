@@ -62,7 +62,7 @@ export default function FareChart() {
       <Label className="absolute bottom-8 left-5 sm:left-8">Illustration</Label>
 
       <PillLink
-        href="/how-it-works"
+        href="#how-it-works"
         size="sm"
         className="absolute right-5 bottom-5 bg-pitch/60 sm:right-8"
       >

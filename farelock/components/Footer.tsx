@@ -5,7 +5,7 @@ const columns = [
   {
     heading: "Product",
     links: [
-      { label: "How it works", href: "/how-it-works" },
+      { label: "How it works", href: "/#how-it-works" },
       { label: "FAQ", href: "/#faq" },
     ],
   },
@@ -21,7 +21,7 @@ const columns = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-line text-[0.8rem]">
+    <footer className="border-t border-line bg-background text-[0.8rem]">
       <Container className="pt-24 pb-8">
         <div className="grid gap-8 md:grid-cols-12">
           <div className="flex flex-col gap-4 md:col-span-6">

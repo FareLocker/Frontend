@@ -10,10 +10,12 @@ import FareTradeLayout from "@/components/trade/FareTradeLayout";
 import FareTradeSkeleton from "@/components/trade/FareTradeSkeleton";
 import FeeDriversCard from "@/components/trade/FeeDriversCard";
 import FlightDetailsCard from "@/components/trade/FlightDetailsCard";
+import HeldLockCard from "@/components/trade/HeldLockCard";
 import LockStatusCard from "@/components/trade/LockStatusCard";
 import LockTicket from "@/components/trade/LockTicket";
 import { getFare } from "@/lib/fares";
 import { daysUntil } from "@/lib/format";
+import { getHeldLock } from "@/lib/locks";
 
 type Params = PageProps<"/fares/[id]">["params"];
 
@@ -55,7 +57,10 @@ export default function FarePage({ params }: PageProps<"/fares/[id]">) {
 
 async function FareTrade({ params }: { params: Params }) {
   const { id } = await params;
-  const fare = await getFare(id);
+  // The fare, and whether this visitor already holds a lock on it (which
+  // decides if the right-hand column sells a lock or shows theirs). Asked
+  // for together, so one request does not wait on the other.
+  const [fare, heldLock] = await Promise.all([getFare(id), getHeldLock(id)]);
   if (!fare) notFound();
 
   // Reading the clock makes this part render per request, never at build.
@@ -78,8 +83,17 @@ async function FareTrade({ params }: { params: Params }) {
       }
       aside={
         <>
-          <LockStatusCard available={fare.lock !== null} />
-          <LockTicket fare={fare} />
+          {heldLock ? (
+            <>
+              <LockStatusCard status="held" boughtOn={heldLock.purchasedOn} />
+              <HeldLockCard fare={fare} lock={heldLock} />
+            </>
+          ) : (
+            <>
+              <LockStatusCard status={fare.lock ? "available" : "unavailable"} />
+              <LockTicket fare={fare} />
+            </>
+          )}
           <FareRangeCards fare={fare} daysAway={daysAway} />
         </>
       }

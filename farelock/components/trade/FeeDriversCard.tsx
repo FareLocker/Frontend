@@ -34,7 +34,7 @@ export default function FeeDriversCard({
         A lock is priced like an option: the more a fare tends to move, and the
         longer there is until the flight, the more the lock is worth.
       </p>
-      <PillLink href="/how-it-works" size="sm" className="mt-3 self-start">
+      <PillLink href="/#pricing" size="sm" className="mt-3 self-start">
         How we price a lock
       </PillLink>
     </Card>
