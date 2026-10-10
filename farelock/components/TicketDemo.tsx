@@ -4,16 +4,15 @@
 import { useState } from "react";
 import TearTicket from "@/components/TearTicket";
 
-// PLACEHOLDER: swap for the signed-in user's account data once the backend exists.
-const ticket = {
-  image: "/ticket-image.svg",
-  name: "Demo traveller",
-  memberNumber: "FL-004821",
-  tier: "Member",
-  homeAirport: "ATL",
-  memberSince: "Oct 2026",
-  activeLocks: "3",
-  totalSaved: "$142",
+/** What the ticket prints. Plain strings, already formatted by the page. */
+export type TicketFields = {
+  name: string;
+  memberNumber: string;
+  tier: string;
+  homeAirport: string;
+  memberSince: string;
+  activeLocks: string;
+  totalSaved: string;
 };
 
 function Field({ label, value, large = false }: { label: string; value: string; large?: boolean }) {
@@ -27,7 +26,7 @@ function Field({ label, value, large = false }: { label: string; value: string; 
   );
 }
 
-export default function TicketDemo() {
+export default function TicketDemo({ ticket }: { ticket: TicketFields }) {
   const [torn, setTorn] = useState(false);
 
   return (
@@ -42,7 +41,7 @@ export default function TicketDemo() {
       tiltReach={400}
       parallax={12}
       perspective={800}
-      image={ticket.image}
+      image="/ticket-image.svg"
       imageAlt=""
       scrim
       ariaLabel="Tear off your member stub"
