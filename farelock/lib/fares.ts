@@ -1,117 +1,130 @@
 import { cache } from "react";
-import { ApiError, api } from "@/lib/api";
-import type { FareDetail, FarePoint, FareSearchResult } from "@/types/fare";
+import { api } from "@/lib/api";
+import type {
+  FareDetail,
+  FarePoint,
+  FareSearchResult,
+  FlightEndpoint,
+} from "@/types/fare";
 
-type FareSearchApiResponse = {
-  results: Array<{
-    id: string;
-    airline_name: string;
-    flight_number: string;
-    cabin_class: string;
-    stop_airports: string[];
-    depart: { airport_code: string; airport_name: string; city: string; local_time: string };
-    arrive: { airport_code: string; airport_name: string; city: string; local_time: string };
-    duration_minutes: number;
-    fare_cents: number;
-    lock: { fee_cents: number } | null;
-    trend: { points_cents: number[]; change_percent: number };
-  }>;
+/*
+ * Where fare data comes from: the backend's /fares endpoints.
+ *
+ * The backend sends the same information the frontend types describe, but in
+ * Python-style names (airline_name, fare_cents). The to… functions at the
+ * bottom rename them. Prices are cents on both sides.
+ *
+ * Both are wrapped in React's cache() so several components can ask for the
+ * same thing during one page render without fetching twice.
+ */
+
+/** Fares matching a search, e.g. "atl to lax nov 20". */
+export const searchFares = cache(
+  async (query: string): Promise<FareSearchResult[]> => {
+    if (!query.trim()) return [];
+    try {
+      const data = await api<{ results: BackendFare[] }>("/fares/search", {
+        method: "POST",
+        body: JSON.stringify({ query }),
+      });
+      return data.results.map(toFare);
+    } catch (error) {
+      // 422: the backend couldn't read the query. 503: flight search is down.
+      console.error("Search failed:", error);
+      return [];
+    }
+  },
+);
+
+/** One fare for the trading page, or null if the id is unknown. */
+export const getFare = cache(async (id: string): Promise<FareDetail | null> => {
+  let data: BackendFareDetail;
+  try {
+    data = await api<BackendFareDetail>(`/fares/${encodeURIComponent(id)}`);
+  } catch (error) {
+    // 404: the fare was never returned by a search, so the backend has no copy.
+    console.error("Fare lookup failed:", error);
+    return null;
+  }
+
+  const fare = toFare(data.fare);
+  const history: FarePoint[] = data.history.map((point) => ({
+    date: point.date,
+    amount: point.amount_cents,
+  }));
+  return {
+    ...fare,
+    // The chart needs at least one point, so fall back to today's fare.
+    history: history.length
+      ? history
+      : [{ date: new Date().toISOString().slice(0, 10), amount: fare.fare.amount }],
+    // The backend doesn't have these yet.
+    aircraft: "—",
+    baggage: "—",
+    fareRules: "—",
+    weeklyMovePercent: Math.abs(fare.trend.changePercent),
+  };
+});
+
+// ------------------------------------------------------- backend shapes
+
+/** One fare as the backend sends it (FareSearchResultResponse in schemas.py). */
+type BackendFare = {
+  id: string;
+  airline_name: string;
+  flight_number: string;
+  cabin_class: string;
+  stop_airports: string[];
+  depart: BackendEndpoint;
+  arrive: BackendEndpoint;
+  duration_minutes: number;
+  fare_cents: number;
+  lock: { fee_cents: number } | null;
+  trend: { points_cents: number[]; change_percent: number };
 };
 
-type FareDetailApiResponse = {
-  fare: FareSearchApiResponse["results"][number];
-  history: Array<{ date: string; amount_cents: number }>;
+type BackendEndpoint = {
+  airport_code: string;
+  airport_name: string;
+  city: string;
+  local_time: string;
 };
 
-type ApiErrorDetail = {
-  code?: string;
-  message?: string;
+/** GET /fares/{id} (FareDetailResponse in schemas.py). */
+type BackendFareDetail = {
+  fare: BackendFare;
+  history: { date: string; amount_cents: number }[];
 };
 
-export type FareSearchOutcome = {
-  fares: FareSearchResult[];
-  error: string | null;
-};
+// ---------------------------------------------------- backend → frontend
 
-function toFareSearchResult(fare: FareSearchApiResponse["results"][number]): FareSearchResult {
+function toFare(fare: BackendFare): FareSearchResult {
+  const amount = fare.fare_cents;
+  const points = fare.trend.points_cents;
   return {
     id: fare.id,
     airlineName: fare.airline_name,
     flightNumber: fare.flight_number,
     cabinClass: fare.cabin_class,
     stopAirports: fare.stop_airports,
-    depart: {
-      airportCode: fare.depart.airport_code,
-      airportName: fare.depart.airport_name,
-      city: fare.depart.city,
-      localTime: fare.depart.local_time,
-    },
-    arrive: {
-      airportCode: fare.arrive.airport_code,
-      airportName: fare.arrive.airport_name,
-      city: fare.arrive.city,
-      localTime: fare.arrive.local_time,
-    },
+    depart: toEndpoint(fare.depart),
+    arrive: toEndpoint(fare.arrive),
     durationMinutes: fare.duration_minutes,
-    fare: { amount: fare.fare_cents, currency: "USD" },
+    fare: { amount, currency: "USD" },
     lock: fare.lock ? { fee: { amount: fare.lock.fee_cents, currency: "USD" } } : null,
-    trend: { points: fare.trend.points_cents, changePercent: fare.trend.change_percent },
+    trend: {
+      // A line needs two points. New fares have little history, so draw it flat.
+      points: points.length >= 2 ? points : [amount, amount],
+      changePercent: fare.trend.change_percent,
+    },
   };
 }
 
-function naturalSearchErrorMessage(error: ApiError): string {
-  if (error.status === 422) {
-    const detail = error.detail as ApiErrorDetail;
-    return detail.message ?? "Please include a route and date, like “ATL to LAX tomorrow”.";
-  }
-
-  return "Search is temporarily unavailable. Please try again in a moment.";
+function toEndpoint(endpoint: BackendEndpoint): FlightEndpoint {
+  return {
+    airportCode: endpoint.airport_code,
+    airportName: endpoint.airport_name,
+    city: endpoint.city,
+    localTime: endpoint.local_time,
+  };
 }
-
-/** Fares matching a natural-language search query. */
-export const searchFares = cache(async (query: string): Promise<FareSearchOutcome> => {
-  if (!query.trim()) return { fares: [], error: null };
-
-  try {
-    const data = await api<FareSearchApiResponse>("/fares/search", {
-      method: "POST",
-      body: JSON.stringify({ query }),
-      cache: "no-store",
-    });
-    return { fares: data.results.map(toFareSearchResult), error: null };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return { fares: [], error: naturalSearchErrorMessage(error) };
-    }
-
-    return {
-      fares: [],
-      error: "Search is temporarily unavailable. Please try again in a moment.",
-    };
-  }
-});
-
-/** One fare for the trading page, or null if its search snapshot has expired. */
-export const getFare = cache(async (id: string): Promise<FareDetail | null> => {
-  try {
-    const data = await api<FareDetailApiResponse>(`/fares/${encodeURIComponent(id)}`, {
-      cache: "no-store",
-    });
-    const fare = toFareSearchResult(data.fare);
-    const history: FarePoint[] = data.history.map((point) => ({
-      date: point.date,
-      amount: point.amount_cents,
-    }));
-    return {
-      ...fare,
-      history,
-      aircraft: "Aircraft details unavailable",
-      baggage: "Baggage details unavailable",
-      fareRules: "Fare rules unavailable",
-      weeklyMovePercent: Math.abs(fare.trend.changePercent),
-    };
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return null;
-    throw error;
-  }
-});
