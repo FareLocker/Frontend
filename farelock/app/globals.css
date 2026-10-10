@@ -1,26 +1,50 @@
 @import "tailwindcss";
 
+/*
+ * FareLock is a single dark theme. Change a colour here and it changes
+ * everywhere: components only use the token names (bg-background,
+ * text-soft, border-line, …), never raw hex values.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #111111; /* page ground */
+  --pitch: #000000; /* full-bleed panels */
+  --foreground: #ffffff; /* headings, primary text */
+  --soft: #dddddd; /* body copy */
+  --muted: #999999; /* labels, captions (passes 4.5:1 on --background) */
+  --faint: #666666; /* dimmed words inside large display copy only */
+  --line: rgb(255 255 255 / 0.2); /* hairline rules */
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-pitch: var(--pitch);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-soft: var(--soft);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #000000;
+html {
+  scroll-behavior: smooth;
+}
+
+/* The header is pinned from this width up: keep in-page anchors clear of it. */
+@media (min-width: 64rem) {
+  html {
+    scroll-padding-top: 6.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }

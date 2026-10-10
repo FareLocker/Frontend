@@ -1,13 +1,23 @@
-import Intro from "@/components/Intro";
-import SearchBar from "@/components/SearchForm";
-import LoginLink from "@/components/LoginLink";
+import ClosingCta from "@/components/landing/ClosingCta";
+import Faq from "@/components/landing/Faq";
+import FareChart from "@/components/landing/FareChart";
+import Hero from "@/components/landing/Hero";
+import HowItWorks from "@/components/landing/HowItWorks";
+import PricingStory from "@/components/landing/PricingStory";
+import TrustStrip from "@/components/landing/TrustStrip";
+import WorkedExample from "@/components/landing/WorkedExample";
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-8 px-6 pb-24">
-      <Intro />
-      <SearchBar />
-      <LoginLink />
+    <main className="flex-1">
+      <Hero />
+      <HowItWorks />
+      <WorkedExample />
+      <FareChart />
+      <PricingStory />
+      <TrustStrip />
+      <Faq />
+      <ClosingCta />
     </main>
   );
 }
