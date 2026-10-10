@@ -18,7 +18,7 @@ const questions = [
   {
     question: "How is the lock fee worked out?",
     answer:
-      "A lock is priced like an option. The fee depends on how much the fare tends to move, how long you lock it for, and how close the flight is.",
+      "A lock is priced like an option. The fee depends on how much the fare tends to move and how long is left until the flight.",
   },
 ];
 

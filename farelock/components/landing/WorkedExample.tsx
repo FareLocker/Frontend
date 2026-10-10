@@ -5,7 +5,7 @@ import SplitSection from "./SplitSection";
 const terms = [
   { label: "Locked fare", value: TBD.example.lockedFare },
   { label: "Lock fee", value: TBD.example.lockFee },
-  { label: "Lock lasts", value: TBD.lockLength },
+  { label: "Lock lasts", value: "Until departure" },
   { label: "Fare on booking day", value: TBD.example.fareAtBooking },
 ];
 
@@ -20,7 +20,7 @@ const outcomes = [
   },
   {
     label: "If you don't book",
-    body: `The lock expires. ${TBD.refundTerms}`,
+    body: `The lock ends when the flight departs. ${TBD.refundTerms}`,
   },
 ];
 

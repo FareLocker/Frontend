@@ -3,7 +3,6 @@ import LabelValue from "@/components/LabelValue";
 import Tag from "@/components/Tag";
 import {
   formatDate,
-  formatDays,
   formatDuration,
   formatMoney,
   formatStops,
@@ -83,9 +82,7 @@ export default function FareSearchCard({ fare }: { fare: FareSearchResult }) {
           {fare.lock ? (
             <>
               {formatMoney(fare.lock.fee)}{" "}
-              <span className="font-normal text-muted">
-                for {formatDays(fare.lock.lengthDays)}
-              </span>
+              <span className="font-normal text-muted">until departure</span>
             </>
           ) : (
             <span className="font-normal text-muted">Not available</span>

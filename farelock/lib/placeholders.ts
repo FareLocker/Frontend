@@ -5,8 +5,6 @@
  * in (or wiring them to the backend) removes all placeholder text at once.
  */
 export const TBD = {
-  /** How long a standard lock lasts, e.g. "7 days". */
-  lockLength: "[LOCK LENGTH]",
   /** The most FareLocker pays out on one lock, e.g. "$200". */
   coverLimit: "[COVER LIMIT]",
   /** What happens to the fee if the customer never books. */

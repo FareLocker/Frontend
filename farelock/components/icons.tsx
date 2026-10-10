@@ -49,3 +49,21 @@ export function UserIcon({ className = "h-4 w-4" }: IconProps) {
     </svg>
   );
 }
+
+export function LockIcon({ className = "h-11 w-11" }: IconProps) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 44 44"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      className={className}
+    >
+      <rect x="12" y="20" width="20" height="15" rx="3" />
+      <path d="M16 20v-5a6 6 0 0 1 12 0v5" />
+      <circle cx="22" cy="27.5" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}

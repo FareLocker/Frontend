@@ -55,7 +55,24 @@ export function formatTrend(changePercent: number): string {
   return `${changePercent > 0 ? "Up" : "Down"} ${amount}% this week`;
 }
 
-/** "7 days", "1 day" */
-export function formatDays(days: number): string {
+/** "95 days", "1 day", "Today" for a number of days until something. */
+export function formatDaysAway(days: number): string {
+  if (days <= 0) return "Today";
   return days === 1 ? "1 day" : `${days} days`;
+}
+
+/**
+ * Whole days from `now` until an airport-local "YYYY-MM-DDTHH:mm" date.
+ * Dates only, so it is not thrown off by the hour or by time zones.
+ */
+export function daysUntil(localTime: string, now: Date): number {
+  const [year, month, day] = localTime.slice(0, 10).split("-").map(Number);
+  const target = Date.UTC(year, month - 1, day);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target - today) / 86_400_000);
+}
+
+/** "±4.2% a week" */
+export function formatWeeklyMove(percent: number): string {
+  return `±${Number.isInteger(percent) ? percent : percent.toFixed(1)}% a week`;
 }

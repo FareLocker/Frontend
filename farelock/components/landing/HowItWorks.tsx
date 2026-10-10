@@ -1,6 +1,5 @@
 import Container from "@/components/Container";
 import Label from "@/components/Label";
-import { TBD } from "@/lib/placeholders";
 
 const steps = [
   {
@@ -9,7 +8,7 @@ const steps = [
   },
   {
     title: "Lock the fare",
-    body: `Pay a one-time fee to hold today's price for ${TBD.lockLength}.`,
+    body: "Pay a one-time fee to hold today's price until the flight departs.",
   },
   {
     title: "Book when you're ready",

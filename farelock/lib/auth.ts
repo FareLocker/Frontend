@@ -8,7 +8,10 @@ export type User = {
  *
  * PLACEHOLDER: there is no backend yet, so nobody is ever signed in. To see
  * the signed-in header while designing, put FARELOCK_DEMO_USER=1 in
- * .env.local and restart the dev server.
+ * .env.local and restart the dev server. For a production build, the flag has
+ * to be set for both `next build` and `next start`: the header is built into
+ * the page ahead of time, so a flag set only at start makes the two disagree
+ * and React reports a hydration error.
  *
  * When the backend exists, read the session cookie here. That makes this a
  * request-time read, which this project's Cache Components setup only allows
