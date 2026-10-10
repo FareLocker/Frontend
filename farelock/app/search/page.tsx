@@ -54,13 +54,24 @@ async function ResultsHeading({ searchParams }: { searchParams: SearchParams }) 
       />
     );
   }
-  const fares = await searchFares(query);
+  const { fares, error } = await searchFares(query);
   const count = fares.length === 1 ? "1 fare" : `${fares.length} fares`;
-  return <SearchHeading title={query} summary={count} />;
+  return <SearchHeading title={query} summary={error ?? count} />;
 }
 
 async function Results({ searchParams }: { searchParams: SearchParams }) {
   const query = await readQuery(searchParams);
   if (!query) return null;
-  return <FareSearchList fares={await searchFares(query)} />;
+  const { fares, error } = await searchFares(query);
+  if (error) return <SearchError message={error} />;
+  return <FareSearchList fares={fares} />;
+}
+
+function SearchError({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col gap-3 py-12">
+      <p className="text-2xl tracking-[-0.02em]">We couldn’t complete that search.</p>
+      <p className="max-w-150 text-xl font-light text-soft">{message}</p>
+    </div>
+  );
 }
