@@ -8,7 +8,9 @@ const block = "bg-foreground/[0.06]";
  */
 export default function FareTradeSkeleton() {
   return (
-    <div aria-hidden className="animate-pulse motion-reduce:animate-none">
+    <div aria-hidden className="flex animate-pulse flex-col gap-5 motion-reduce:animate-none">
+      {/* The "Back to…" pill, which waits for the fare like everything else. */}
+      <div className={`${block} h-11 w-32 rounded-full`} />
       <FareTradeLayout
         main={
           <>

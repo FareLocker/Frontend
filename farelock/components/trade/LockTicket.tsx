@@ -1,37 +1,34 @@
 import Link from "next/link";
 import Card from "@/components/Card";
 import DetailList, { DetailRow } from "@/components/DetailList";
-import { pillClass } from "@/components/PillLink";
+import PillLink, { solidButtonClass } from "@/components/PillLink";
 import { formatDate, formatMoney, formatTime } from "@/lib/format";
-import { TBD } from "@/lib/placeholders";
+import { maxGain } from "@/lib/locks";
 import type { FareDetail } from "@/types/fare";
-
-const primaryButton =
-  "flex min-h-[60px] items-center justify-center rounded-full bg-foreground px-6 text-[1.05rem] font-semibold tracking-[-0.01em] text-background transition-colors duration-300 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
 
 /**
  * The order ticket: what locking this fare gets you, what it costs, and the
- * buttons to lock it or book it straight away.
+ * button to buy the lock. Shown to a visitor who does not hold a lock on
+ * this fare yet; once they do, HeldLockCard takes its place.
  *
  * A lock has no length to choose. It runs until the flight departs.
+ * FareLocker sells the lock only, never the flight, so there is no
+ * "book" button here.
  *
- * LATER (checkout and booking): the two buttons link to /checkout and /book,
- * which do not exist yet.
+ * LATER (checkout): the button links to /checkout, which does not exist yet.
  */
 export default function LockTicket({ fare }: { fare: FareDetail }) {
-  const bookHref = `/book?fare=${fare.id}`;
-
   if (!fare.lock) {
     return (
       <Card className="flex flex-col gap-5">
-        <h2 className="text-2xl tracking-[-0.03em]">Book this fare</h2>
+        <h2 className="text-2xl tracking-[-0.03em]">Lock this fare</h2>
         <p className="text-[13px] leading-normal text-muted">
-          We can&rsquo;t offer a lock on this fare right now. You can still book
-          it at today&rsquo;s price.
+          We can&rsquo;t offer a lock on this fare right now. Other flights on
+          this route may have one.
         </p>
-        <Link href={bookHref} className={primaryButton}>
-          Book now at {formatMoney(fare.fare)}
-        </Link>
+        <PillLink href="/search" className="w-full">
+          Back to search
+        </PillLink>
       </Card>
     );
   }
@@ -49,7 +46,10 @@ export default function LockTicket({ fare }: { fare: FareDetail }) {
             {formatTime(fare.depart.localTime)}
           </span>
         </DetailRow>
-        <DetailRow label="We cover a rise of up to">{TBD.coverLimit}</DetailRow>
+        <DetailRow label="Most you can gain">
+          {formatMoney(maxGain(fare.fare))}
+          <span className="block font-normal text-muted">Half the locked fare</span>
+        </DetailRow>
       </DetailList>
 
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 rounded-[1.25rem] bg-pitch px-[22px] py-5">
@@ -61,15 +61,12 @@ export default function LockTicket({ fare }: { fare: FareDetail }) {
         </span>
       </div>
 
-      <Link href={`/checkout?fare=${fare.id}`} className={primaryButton}>
+      <Link href={`/checkout?fare=${fare.id}`} className={solidButtonClass}>
         Lock this fare
       </Link>
       <p className="text-center text-xs font-medium text-muted">
-        The flight is not charged today
+        Paid from your wallet
       </p>
-      <Link href={bookHref} className={`${pillClass.md} w-full`}>
-        Book now at {formatMoney(fare.fare)}
-      </Link>
     </Card>
   );
 }

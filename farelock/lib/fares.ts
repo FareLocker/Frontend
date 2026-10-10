@@ -49,7 +49,14 @@ export const searchFares = cache(
   },
 );
 
-/** One fare for the trading page, or null if the id is unknown. */
+/**
+ * One fare for the trading page, or null if the id is unknown.
+ *
+ * NOTE (update 02, comment only): this has to keep answering for a flight
+ * that has departed, as long as a member holds or held a lock on it, because
+ * the lock's page is the fare's page. The backend's /fares/{id} reads a saved
+ * snapshot, so it should, but that needs checking once locks are listed.
+ */
 export const getFare = cache(async (id: string): Promise<FareDetail | null> => {
   let data: BackendFareDetail;
   try {

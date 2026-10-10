@@ -21,6 +21,30 @@ export type FareChartOptions = {
   markerColor?: string;
   /** Seconds the chart takes to sweep in from the left. */
   revealSeconds?: number;
+  /** Marks the moment a lock was bought. See FarePurchaseMark. */
+  purchase?: FarePurchaseMark;
+};
+
+/**
+ * Where on the chart a member bought their lock.
+ *
+ * It is drawn as a dashed upright line at that day, with a solid square
+ * where it meets the locked fare. With `showLevel`, a dashed level line also
+ * runs from the square towards today at the locked fare: the fare is below
+ * that line exactly when the lock is worth something.
+ */
+export type FarePurchaseMark = {
+  /** Which entry of `points` is the day the lock was bought. */
+  index: number;
+  /** The locked fare, in the same unit as `points`. */
+  level: number;
+  color: string;
+  showLevel?: boolean;
+  /**
+   * Which entry of `points` is the day the lock ended, if it has. The level
+   * line stops there instead of running on to today.
+   */
+  endIndex?: number;
 };
 
 const SKIRT = 13; // cells a "ridge" fades over
@@ -45,6 +69,7 @@ export function createFareChartPainter({
   range = 0.4,
   markerColor,
   revealSeconds = 0.9,
+  purchase,
 }: FareChartOptions): DitherPainter {
   const low = Math.min(...points);
   const spread = Math.max(...points) - low || 1;
@@ -91,6 +116,37 @@ export function createFareChartPainter({
       for (let i = 0; i < 2; i++) {
         for (let j = 0; j < 2; j++) {
           ctx.fillRect((mx + i) * cell, (my + j) * cell, cell - 1, cell - 1);
+        }
+      }
+    }
+
+    if (purchase && points.length > 1) {
+      const column = (index: number) =>
+        Math.round((index / (points.length - 1)) * (cols - 1));
+      const bx = column(purchase.index);
+      // Like the fares, the mark only appears once the sweep has reached it.
+      if (bx < shown) {
+        const share = Math.min(1, Math.max(0, (purchase.level - low) / spread));
+        const by = Math.floor(rows - rows * (floor + range * share));
+        // Clear a dot's cell first, so the mark stays crisp over the fares.
+        const dot = (gx: number, gy: number) => {
+          ctx.clearRect(gx * cell - 1, gy * cell - 1, cell + 1, cell + 1);
+          ctx.fillRect(gx * cell, gy * cell, cell - 1, cell - 1);
+        };
+        ctx.fillStyle = purchase.color;
+        // The upright line: from the top down to where the fares fade out.
+        for (let gy = by & 1; gy < Math.min(rows, by + SKIRT + 1); gy += 2) {
+          dot(bx, gy);
+        }
+        if (purchase.showLevel) {
+          const end =
+            purchase.endIndex === undefined
+              ? shown
+              : Math.min(shown, column(purchase.endIndex) + 1);
+          for (let gx = bx; gx < end; gx += 2) dot(gx, by);
+        }
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) dot(bx + i, by + j);
         }
       }
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { accentColor } from "@/lib/dither";
+import { accentColor, backgroundColor } from "@/lib/dither";
 import { createPlaneFlyby, type TextStop } from "@/lib/plane-flyby";
 import { useDitherCanvas, type DitherPainter } from "@/lib/useDitherCanvas";
 
@@ -33,6 +33,8 @@ export default function PlaneFlyby({
     (canvas: HTMLCanvasElement): DitherPainter => {
       const flyby = createPlaneFlyby({
         color: accentColor(canvas),
+        // Solid behind the plane, so the page's stars don't show through it.
+        backdrop: backgroundColor(canvas),
         flatten,
         horizon,
         textStops,
@@ -51,7 +53,7 @@ export default function PlaneFlyby({
     <canvas
       ref={canvasRef}
       aria-hidden
-      className={`pointer-events-none absolute inset-0 h-full w-full opacity-80 ${className}`}
+      className={`pointer-events-none absolute inset-0 h-full w-full ${className}`}
     />
   );
 }
