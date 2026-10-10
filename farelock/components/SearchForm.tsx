@@ -15,7 +15,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
       role="search"
       className={`flex h-12 items-center gap-3 rounded-full border border-foreground px-5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-foreground ${className}`}
     >
-      <SearchIcon className="h-[18px] w-[18px] shrink-0" />
+      <SearchIcon className="h-4.5 w-4.5 shrink-0" />
       <label htmlFor={SEARCH_INPUT_ID} className="sr-only">
         Search flights
       </label>
