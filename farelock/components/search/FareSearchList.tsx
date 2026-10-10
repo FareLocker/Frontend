@@ -12,7 +12,7 @@ export default function FareSearchList({
     return (
       <div className="flex flex-col gap-3 py-12">
         <p className="text-2xl tracking-[-0.02em]">No fares found.</p>
-        <p className="max-w-[600px] text-xl font-light text-soft">
+        <p className="max-w-150 text-xl font-light text-soft">
           Try a different city, airport or date in the search bar.
         </p>
       </div>
