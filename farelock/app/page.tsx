@@ -1,11 +1,13 @@
-import SearchForm from "@/components/SearchForm";
+import Intro from "@/components/Intro";
+import SearchBar from "@/components/SearchForm";
+import LoginLink from "@/components/LoginLink";
 
 export default function Home() {
   return (
-    <main className="flex w-full max-w-7xl flex-col items-center gap-8 px-6 py-32 text-black">
-      <h1 className="text-5xl font-semibold">FareLock</h1>
-      <SearchForm />
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-8 px-6 pb-24">
+      <Intro />
+      <SearchBar />
+      <LoginLink />
     </main>
-
   );
 }
