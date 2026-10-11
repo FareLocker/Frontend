@@ -182,9 +182,6 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
               does not sell tickets.
             </p>
 
-            <p className="text-center text-xs leading-normal text-muted">
-              Price held for {TBD.quoteHold}. After that we re-price the lock.
-            </p>
           </Card>
         </aside>
       </div>
