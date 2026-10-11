@@ -73,10 +73,9 @@ export const getFare = cache(async (id: string): Promise<FareDetail | null> => {
     amount: point.amount_cents,
   }));
 
-  const history = tracked.length
-    ? tracked
-    : // The chart needs at least one point, so fall back to today's fare.
-      [{ date: new Date().toISOString().slice(0, 10), amount: fare.fare.amount }];
+  // Demo / live fares can move between polls while daily history lags. Keep
+  // the series tip on the current fare so the chart advances with the price.
+  const history = withLiveTip(tracked, fare.fare.amount);
   const trend = history.length >= 2 ? trendFrom(history) : fare.trend;
 
   return {
@@ -93,6 +92,22 @@ export const getFare = cache(async (id: string): Promise<FareDetail | null> => {
 });
 
 // ------------------------------------------------------------ price history
+
+/**
+ * Align history with the live fare: update today's tip in place, or append a
+ * new point when the series has not reached today yet.
+ */
+function withLiveTip(history: FarePoint[], liveCents: number): FarePoint[] {
+  const today = new Date().toISOString().slice(0, 10);
+  if (!history.length) return [{ date: today, amount: liveCents }];
+
+  const last = history[history.length - 1];
+  if (last.date >= today) {
+    if (last.amount === liveCents) return history;
+    return [...history.slice(0, -1), { ...last, amount: liveCents }];
+  }
+  return [...history, { date: today, amount: liveCents }];
+}
 
 /** How many days a search card's small chart shows. */
 const CARD_TREND_DAYS = 30;

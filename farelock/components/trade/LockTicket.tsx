@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { quoteLockAtStrike } from "@/app/(site)/fares/actions";
 import Card from "@/components/Card";
 import DetailList, { DetailRow } from "@/components/DetailList";
@@ -20,7 +20,8 @@ const QUOTE_DEBOUNCE_MS = 350;
  *
  * The locked fare starts at today's fare and can be edited. Editing
  * re-prices the fee (debounced) via the option model. When the quote timer
- * expires, the fee is re-priced at the current strike.
+ * expires — or the live fare moves — the fee is re-priced at the current
+ * strike.
  *
  * A lock has no length to choose. It runs until the flight departs.
  * FareLocker sells the lock only, never the flight, so there is no
@@ -59,12 +60,73 @@ function LockTicketForm({
   const [fee, setFee] = useState(initialFee);
   const [quoting, setQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const marketCents = useRef(fare.fare.amount);
+
+  const liveCents = fare.fare.amount;
+  const feeCents = initialFee.amount;
+  const origin = fare.depart.airportCode;
+  const destination = fare.arrive.airportCode;
+  const departureDate = fare.depart.localTime.slice(0, 10);
+  const flightNumber = fare.flightNumber;
+
+  // Live market fare moved: follow it when the strike was still at the old
+  // market price; a custom strike stays put and is re-quoted against the
+  // new spot.
+  useEffect(() => {
+    if (marketCents.current === liveCents) return;
+    const previousMarket = marketCents.current;
+    marketCents.current = liveCents;
+
+    if (strikeCents === previousMarket) {
+      setStrikeCents(liveCents);
+      setDraft(centsToDraft(liveCents));
+      setFee({ amount: feeCents, currency });
+      setQuoteError(null);
+      setQuoting(false);
+      return;
+    }
+
+    const customStrike = strikeCents;
+    let cancelled = false;
+    setQuoting(true);
+    setQuoteError(null);
+    void quoteLockAtStrike({
+      origin,
+      destination,
+      departureDate,
+      flightNumber,
+      fareCents: liveCents,
+      strikeCents: customStrike,
+    }).then((result) => {
+      if (cancelled) return;
+      applyQuoteResult(
+        { result, currency },
+        customStrike,
+        setStrikeCents,
+        setFee,
+        setQuoteError,
+        setQuoting,
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    liveCents,
+    strikeCents,
+    feeCents,
+    currency,
+    origin,
+    destination,
+    departureDate,
+    flightNumber,
+  ]);
 
   // Pick up the server fee when still locking at today's market fare.
   useEffect(() => {
-    if (strikeCents !== fare.fare.amount) return;
-    setFee(initialFee);
-  }, [initialFee, strikeCents, fare.fare.amount]);
+    if (strikeCents !== liveCents) return;
+    setFee({ amount: feeCents, currency });
+  }, [feeCents, currency, strikeCents, liveCents]);
 
   // Debounced re-price while the locked fare is being edited.
   useEffect(() => {
@@ -84,9 +146,23 @@ function LockTicketForm({
     setQuoting(true);
     setQuoteError(null);
     const handle = window.setTimeout(async () => {
-      const next = await fetchQuote(fare, parsed, currency);
+      const result = await quoteLockAtStrike({
+        origin,
+        destination,
+        departureDate,
+        flightNumber,
+        fareCents: liveCents,
+        strikeCents: parsed,
+      });
       if (cancelled) return;
-      applyQuoteResult(next, parsed, setStrikeCents, setFee, setQuoteError, setQuoting);
+      applyQuoteResult(
+        { result, currency },
+        parsed,
+        setStrikeCents,
+        setFee,
+        setQuoteError,
+        setQuoting,
+      );
     }, QUOTE_DEBOUNCE_MS);
 
     return () => {
@@ -97,7 +173,11 @@ function LockTicketForm({
     draft,
     strikeCents,
     currency,
-    fare,
+    liveCents,
+    origin,
+    destination,
+    departureDate,
+    flightNumber,
   ]);
 
   // When the quote countdown ends, re-price at the strike currently shown.
@@ -110,9 +190,23 @@ function LockTicketForm({
 
       setQuoting(true);
       setQuoteError(null);
-      void fetchQuote(fare, parsed, currency).then((next) => {
+      void quoteLockAtStrike({
+        origin,
+        destination,
+        departureDate,
+        flightNumber,
+        fareCents: liveCents,
+        strikeCents: parsed,
+      }).then((result) => {
         if (cancelled) return;
-        applyQuoteResult(next, parsed, setStrikeCents, setFee, setQuoteError, setQuoting);
+        applyQuoteResult(
+          { result, currency },
+          parsed,
+          setStrikeCents,
+          setFee,
+          setQuoteError,
+          setQuoting,
+        );
       });
     };
 
@@ -121,7 +215,15 @@ function LockTicketForm({
       cancelled = true;
       window.removeEventListener(QUOTE_REFRESH_EVENT, onRefresh);
     };
-  }, [draft, currency, fare]);
+  }, [
+    draft,
+    currency,
+    liveCents,
+    origin,
+    destination,
+    departureDate,
+    flightNumber,
+  ]);
 
   const lockedFare: Money = { amount: strikeCents, currency };
   const checkoutHref =
@@ -210,28 +312,15 @@ function LockTicketForm({
   );
 }
 
-async function fetchQuote(fare: FareDetail, strikeCents: number, currency: string) {
-  return quoteLockAtStrike({
-    origin: fare.depart.airportCode,
-    destination: fare.arrive.airportCode,
-    departureDate: fare.depart.localTime.slice(0, 10),
-    flightNumber: fare.flightNumber,
-    fareCents: fare.fare.amount,
-    strikeCents,
-  }).then((result) => ({ result, currency }));
-}
-
 function applyQuoteResult(
-  {
-    result,
-    currency,
-  }: Awaited<ReturnType<typeof fetchQuote>>,
+  payload: { result: Awaited<ReturnType<typeof quoteLockAtStrike>>; currency: string },
   strikeCents: number,
   setStrikeCents: (n: number) => void,
   setFee: (fee: Money) => void,
   setQuoteError: (error: string | null) => void,
   setQuoting: (quoting: boolean) => void,
 ) {
+  const { result, currency } = payload;
   if ("error" in result) {
     setQuoteError(result.error);
     setQuoting(false);

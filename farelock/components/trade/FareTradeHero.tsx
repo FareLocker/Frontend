@@ -12,7 +12,8 @@ import type { FareDetail, Money } from "@/types/fare";
 import type { Lock } from "@/types/lock";
 import FareTradeChart, { type ChartLock } from "./FareTradeChart";
 
-const statLabel = "text-[11px] font-semibold uppercase tracking-[0.1em] text-muted";
+const statLabel =
+  "text-[11px] font-semibold uppercase tracking-[0.1em] text-muted";
 
 /**
  * The big black panel at the top of the trading page: which flight this is,
@@ -42,7 +43,9 @@ export default function FareTradeHero({
       aria-label="Fare history"
       className="pixel-grid-lg relative flex min-h-[580px] flex-col justify-between gap-10 overflow-hidden rounded-[2rem] border border-foreground/10 bg-pitch p-6 sm:p-8"
     >
-      {hasChart ? <FareTradeChart points={points} lock={mark ?? undefined} /> : null}
+      {hasChart ? (
+        <FareTradeChart points={points} lock={mark ?? undefined} />
+      ) : null}
 
       <div className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div className="flex min-w-0 flex-col gap-2.5">
@@ -94,7 +97,10 @@ export default function FareTradeHero({
            * a tag there would cover the title or the fares.
            */}
           {lock && mark ? (
-            <ul aria-label="Chart key" className="flex flex-col items-end gap-1.5 text-xs text-muted">
+            <ul
+              aria-label="Chart key"
+              className="flex flex-col items-end gap-1.5 text-xs text-muted"
+            >
               <li className="flex items-center gap-2.5">
                 <span>
                   Lock bought{" "}
@@ -113,7 +119,10 @@ export default function FareTradeHero({
                     {formatMoney(lock.lockedFare)}
                   </span>
                 </span>
-                <span aria-hidden className="w-[18px] border-t-2 border-dashed border-foreground" />
+                <span
+                  aria-hidden
+                  className="w-[18px] border-t-2 border-dashed border-foreground"
+                />
               </li>
             </ul>
           ) : null}
@@ -136,20 +145,32 @@ export default function FareTradeHero({
         <dl className="flex flex-wrap justify-end gap-x-9 gap-y-3 text-right">
           {ended ? (
             <>
-              <Stat label={lock.status === "expired" ? "Fare at departure" : "Fare when exercised"}>
+              <Stat
+                label={
+                  lock.status === "expired"
+                    ? "Fare at departure"
+                    : "Fare when exercised"
+                }
+              >
                 {lock.endedOn ? `On ${formatDate(lock.endedOn)}` : "—"}
               </Stat>
-              <Stat label="Your locked fare">{formatMoney(lock.lockedFare)}</Stat>
-              <Stat label="Lock paid">
+              <Stat label="Your locked fare">
+                {formatMoney(lock.lockedFare)}
+              </Stat>
+              <Stat label="FareLock paid">
                 {lock.payout ? formatMoney(lock.payout) : "Being checked"}
               </Stat>
             </>
           ) : (
             <>
-              <Stat label="Current fare">{formatTrend(fare.trend.changePercent)}</Stat>
+              <Stat label="Current fare">
+                {formatTrend(fare.trend.changePercent)}
+              </Stat>
               {lock ? (
                 <>
-                  <Stat label="Your locked fare">{formatMoney(lock.lockedFare)}</Stat>
+                  <Stat label="Your locked fare">
+                    {formatMoney(lock.lockedFare)}
+                  </Stat>
                   <Stat label="Since you locked">
                     {formatChange(lock.lockedFare, fare.fare)}
                   </Stat>
@@ -164,7 +185,13 @@ export default function FareTradeHero({
 }
 
 /** One small label-over-value pair in the glass bar. */
-function Stat({ label, children }: { label: string; children: React.ReactNode }) {
+function Stat({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col items-end gap-1.5">
       <dt className={statLabel}>{label}</dt>
@@ -177,7 +204,10 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
 function formatChange(from: Money, to: Money): string {
   const change = to.amount - from.amount;
   if (change === 0) return "No change";
-  const size = formatMoney({ amount: Math.abs(change), currency: from.currency });
+  const size = formatMoney({
+    amount: Math.abs(change),
+    currency: from.currency,
+  });
   return `${change < 0 ? "Down" : "Up"} ${size}`;
 }
 
@@ -187,7 +217,9 @@ function formatChange(from: Money, to: Money): string {
  * is nowhere to draw it.
  */
 function chartLock(fare: FareDetail, lock: Lock): ChartLock | null {
-  const boughtIndex = fare.history.findIndex((point) => point.date >= lock.purchasedOn);
+  const boughtIndex = fare.history.findIndex(
+    (point) => point.date >= lock.purchasedOn,
+  );
   if (boughtIndex < 0 || fare.history[0].date > lock.purchasedOn) return null;
   const { endedOn } = lock;
   const endedIndex = endedOn

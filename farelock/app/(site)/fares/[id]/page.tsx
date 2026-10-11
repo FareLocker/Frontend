@@ -99,6 +99,8 @@ async function FareTrade({
 
   return (
     <>
+      {/* Keep the live fare and history current while this page is open. */}
+      {!ended ? <FarePoller /> : null}
       <Link
         href={ended ? "/locks" : query ? `/search?q=${encodeURIComponent(query)}` : "/search"}
         className="inline-flex min-h-11 items-center self-start rounded-full bg-foreground/10 px-4 text-xs font-medium transition-colors duration-200 hover:bg-foreground/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
@@ -123,7 +125,12 @@ async function FareTrade({
         }
         aside={
           <>
-            <LockStatusCard lock={lock} forSale={fare.lock !== null} daysAway={daysAway} />
+            <LockStatusCard
+              lock={lock}
+              forSale={fare.lock !== null}
+              daysAway={daysAway}
+              fareCents={fare.fare.amount}
+            />
             <LockColumn fare={fare} lock={lock} />
             <FareRangeCards fare={fare} daysAway={daysAway} lockedFare={lock?.lockedFare} />
             {lock ? <LockHelpCard /> : null}

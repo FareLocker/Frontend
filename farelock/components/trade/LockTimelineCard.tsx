@@ -1,5 +1,10 @@
 import Card from "@/components/Card";
-import { formatDate, formatDaysAway, formatMoney, formatTime } from "@/lib/format";
+import {
+  formatDate,
+  formatDaysAway,
+  formatMoney,
+  formatTime,
+} from "@/lib/format";
 import { lastCrossing } from "@/lib/locks";
 import type { FareDetail } from "@/types/fare";
 import type { Lock } from "@/types/lock";
@@ -25,7 +30,7 @@ export default function LockTimelineCard({
   return (
     <Card className="flex flex-col gap-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
-        <h2 className={`${cardHeadingClass} pb-0`}>Lock timeline</h2>
+        <h2 className={`${cardHeadingClass} pb-0`}>FareLock timeline</h2>
         <p className={`text-[13px] font-semibold ${open ? "" : "text-muted"}`}>
           {open
             ? daysAway > 0
@@ -110,7 +115,8 @@ function Event({
 
 /** What happened on the lock's last day. */
 function ending(lock: Lock): string {
-  const paid = lock.payout && lock.payout.amount > 0 ? formatMoney(lock.payout) : null;
+  const paid =
+    lock.payout && lock.payout.amount > 0 ? formatMoney(lock.payout) : null;
   switch (lock.status) {
     case "expired":
       return paid

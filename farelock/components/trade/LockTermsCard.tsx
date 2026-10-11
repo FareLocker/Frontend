@@ -15,7 +15,7 @@ export default function LockTermsCard({ lock }: { lock: Lock }) {
 
   return (
     <Card className="flex flex-col">
-      <h2 className={cardHeadingClass}>Lock terms</h2>
+      <h2 className={cardHeadingClass}>FareLock terms</h2>
       <DetailList>
         <DetailRow label="Lock ID">{lock.id}</DetailRow>
         <DetailRow label="Bought">{formatDate(lock.purchasedOn)}</DetailRow>
@@ -32,16 +32,14 @@ export default function LockTermsCard({ lock }: { lock: Lock }) {
           </DetailRow>
         ) : (
           <>
-            <DetailRow label="Locked fare">{formatMoney(lock.lockedFare)}</DetailRow>
+            <DetailRow label="Locked fare">
+              {formatMoney(lock.lockedFare)}
+            </DetailRow>
             <DetailRow label="Ended">
               {lock.endedOn ? formatDate(lock.endedOn) : "—"}
             </DetailRow>
           </>
         )}
-        <DetailRow label="It pays">
-          The fall in the fare
-          <span className="block font-normal text-muted">Up to half the locked fare</span>
-        </DetailRow>
       </DetailList>
       {/* LATER (lock terms): /lock-terms has not been built. */}
       <PillLink href="/lock-terms" size="sm" className="mt-3 self-start">

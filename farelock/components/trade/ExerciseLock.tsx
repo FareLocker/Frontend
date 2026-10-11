@@ -4,7 +4,11 @@ import { useActionState, useId, useRef } from "react";
 import { exerciseLock } from "@/app/(site)/locks/actions";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import Label from "@/components/Label";
-import { pillClass, solidButtonClass, solidButtonSmallClass } from "@/components/PillLink";
+import {
+  pillClass,
+  solidButtonClass,
+  solidButtonSmallClass,
+} from "@/components/PillLink";
 import { TBD } from "@/lib/placeholders";
 
 /**
@@ -66,7 +70,9 @@ export default function ExerciseLock({
       <button
         type="button"
         onClick={() => dialogRef.current?.showModal()}
-        className={size === "lg" ? `${solidButtonClass} w-full` : solidButtonSmallClass}
+        className={
+          size === "lg" ? `${solidButtonClass} w-full` : solidButtonSmallClass
+        }
       >
         {label}
       </button>
@@ -117,7 +123,9 @@ export default function ExerciseLock({
             <DetailRow label="Difference">{summary.difference}</DetailRow>
             <DetailRow label="Most you can gain">
               {summary.maxGain}
-              <span className="block font-normal text-muted">Half the locked fare</span>
+              <span className="block font-normal text-muted">
+                Half the locked fare
+              </span>
             </DetailRow>
           </DetailList>
 
@@ -135,7 +143,10 @@ export default function ExerciseLock({
           </p>
 
           {state?.error ? (
-            <p role="alert" className="text-[13px] leading-normal font-semibold text-accent">
+            <p
+              role="alert"
+              className="text-[13px] leading-normal font-semibold text-accent"
+            >
               {state.error}
             </p>
           ) : null}
@@ -148,18 +159,19 @@ export default function ExerciseLock({
               disabled={pending}
               className={`${solidButtonClass} w-full disabled:cursor-wait disabled:opacity-60`}
             >
-              {pending ? "Exercising…" : `Exercise and receive ${summary.payout}`}
+              {pending
+                ? "Exercising…"
+                : `Exercise and receive ${summary.payout}`}
             </button>
           </form>
           <form method="dialog">
-            <button type="submit" className={`${pillClass.md} w-full cursor-pointer`}>
+            <button
+              type="submit"
+              className={`${pillClass.md} w-full cursor-pointer`}
+            >
               Keep my lock
             </button>
           </form>
-
-          <p className="text-center text-xs leading-normal text-muted">
-            Payout held for {TBD.quoteHold}. After that we re-check the fare.
-          </p>
         </div>
       </dialog>
     </>

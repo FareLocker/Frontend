@@ -17,6 +17,7 @@ export default function LockStatusCard({
   lock = null,
   forSale = false,
   daysAway = 0,
+  fareCents = 0,
 }: {
   /** The member's lock on this fare, if they have one. */
   lock?: Lock | null;
@@ -24,8 +25,10 @@ export default function LockStatusCard({
   forSale?: boolean;
   /** Whole days until the flight departs. */
   daysAway?: number;
+  /** Live market fare in cents; when it changes the quote timer restarts. */
+  fareCents?: number;
 }) {
-  const { title, detail, icon } = describe(lock, forSale, daysAway);
+  const { title, detail, icon } = describe(lock, forSale, daysAway, fareCents);
 
   return (
     <Card
@@ -44,10 +47,19 @@ export default function LockStatusCard({
   );
 }
 
-function describe(lock: Lock | null, forSale: boolean, daysAway: number) {
+function describe(
+  lock: Lock | null,
+  forSale: boolean,
+  daysAway: number,
+  fareCents: number,
+) {
   if (!lock) {
     return forSale
-      ? { title: "Lock available", detail: <QuoteTimer />, icon: "" }
+      ? {
+          title: "Lock available",
+          detail: <QuoteTimer fareCents={fareCents} />,
+          icon: "",
+        }
       : {
           title: "Lock not available",
           detail: "We can't price a lock on this fare right now",
