@@ -21,7 +21,10 @@ async function startSession(accessToken: string) {
   });
 }
 
-type TokenResponse = { access_token: string };
+type TokenResponse = {
+  access_token: string;
+  messaging?: { status: "awaiting_start" | "connected" | "unavailable"; assigned_phone_number: string | null };
+};
 
 /**
  * Calls an /auth endpoint. Returns the token, or a sentence for the form.
@@ -32,14 +35,14 @@ async function requestToken(
   path: "/auth/login" | "/auth/register",
   body: Record<string, unknown>,
   fallback: string,
-): Promise<{ token: string } | { error: string }> {
+): Promise<{ token: string; messaging?: TokenResponse["messaging"] } | { error: string }> {
   try {
-    const { access_token } = await api<TokenResponse>(path, {
+    const { access_token, messaging } = await api<TokenResponse>(path, {
       method: "POST",
       body: JSON.stringify(body),
     });
     if (!access_token) throw new Error(`${path} answered without an access_token`);
-    return { token: access_token };
+    return { token: access_token, messaging };
   } catch (error) {
     if (!(error instanceof ApiError)) {
       console.error(`${path} request failed:`, error);
@@ -74,7 +77,7 @@ export async function logIn(
   if ("error" in result) return result;
 
   await startSession(result.token);
-  redirect("/account");
+  redirect("/connect");
 }
 
 export async function register(

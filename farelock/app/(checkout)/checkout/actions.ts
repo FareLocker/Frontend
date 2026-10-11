@@ -68,5 +68,7 @@ export async function buyLock(
   revalidatePath(`/fares/${fareId}`);
   revalidatePath("/wallet");
   revalidatePath("/account");
-  redirect(`/fares/${encodeURIComponent(fareId)}`);
+  // Keep the confirmed purchase separate from the fare page so the member
+  // sees the lock-activation animation before arriving at their active lock.
+  redirect(`/checkout/success?fare=${encodeURIComponent(fareId)}`);
 }

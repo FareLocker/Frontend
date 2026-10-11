@@ -6,6 +6,10 @@ export type User = {
   id: string;
   name: string;
   email: string;
+  messaging: {
+    status: "awaiting_start" | "connected" | "unavailable";
+    assignedPhoneNumber: string | null;
+  };
 };
 
 /**
@@ -34,6 +38,10 @@ type BackendUser = {
   first_name: string;
   last_name: string;
   balance_cents: number;
+  messaging: {
+    status: "awaiting_start" | "connected" | "unavailable";
+    assigned_phone_number: string | null;
+  };
 };
 
 /**
@@ -55,6 +63,10 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
       id: String(me.id),
       name: `${me.first_name} ${me.last_name}`.trim(),
       email: me.email,
+      messaging: {
+        status: me.messaging.status,
+        assignedPhoneNumber: me.messaging.assigned_phone_number,
+      },
     };
   } catch {
     return null;

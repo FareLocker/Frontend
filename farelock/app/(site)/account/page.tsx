@@ -84,6 +84,20 @@ async function AccountView({ searchParams }: { searchParams: SearchParams }) {
         </div>
       </header>
 
+      {user.messaging.status !== "connected" ? (
+        <Card tone="raised" size="md" className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className={cardHeadingClass}>Connect iMessage</h2>
+            <p className="mt-2 text-sm text-muted">
+              {user.messaging.status === "awaiting_start"
+                ? "Text START to your assigned FareLocker number to receive your welcome message."
+                : "Your messaging line is not ready yet. Retry setup when you’re ready."}
+            </p>
+          </div>
+          <PillLink href="/connect" size="sm">Set up iMessage</PillLink>
+        </Card>
+      ) : null}
+
       <div className="grid gap-5 sm:grid-cols-3">
         <Card tone="raised" size="md">
           <LabelValue

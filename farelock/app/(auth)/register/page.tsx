@@ -82,8 +82,8 @@ export default function RegisterPage() {
                   autoComplete="tel"
                   placeholder="(555) 123-4567"
                   maxLength={20}
-                  optional
-                  hint="You can log in with it instead of your email."
+                  required
+                  hint="Required to connect your FareLocker iMessage line."
                 />
                 {/* NEW (update 02): Show / Hide toggle. 8 to 72 is the backend's rule. */}
                 <PasswordField
