@@ -10,6 +10,7 @@ import PillLink, { pillClass } from "@/components/PillLink";
 import TicketDemo from "@/components/TicketDemo";
 import ActivityCard from "@/components/account/ActivityCard";
 import WithdrawButton from "@/components/account/WithdrawButton";
+import DeleteAccountButton from "@/components/account/DeleteAccountButton";
 import { logOut } from "@/app/login/actions";
 import LockList from "@/components/account/LockList";
 import { cardHeadingClass } from "@/components/trade/FlightDetailsCard";
@@ -168,6 +169,10 @@ async function AccountView({ searchParams }: { searchParams: SearchParams }) {
               <DetailRow label="Home airport">{account.homeAirport}</DetailRow>
               <DetailRow label="Member since">{account.memberSince}</DetailRow>
             </DetailList>
+            {/* Out of the way on purpose: it opens a confirm dialog that asks for the password. */}
+            <div className="mt-5 border-t border-foreground/10 pt-5">
+              <DeleteAccountButton />
+            </div>
           </Card>
         </aside>
       </div>
