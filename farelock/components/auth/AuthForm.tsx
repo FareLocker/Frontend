@@ -1,24 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { pillClass } from "@/components/PillLink";
+import { useActionState, type ReactNode } from "react";
+import { solidButtonClass } from "@/components/PillLink";
+import TextField, { fieldInputClass } from "@/components/TextField";
 import type { AuthFormState } from "@/app/login/actions";
+import FormError from "./FormError";
 
-export const inputClass =
-  "h-12 w-full rounded-lg border border-line bg-transparent px-4 outline-none placeholder:text-faint focus:border-foreground";
+/*
+ * Update 02 styling: the inputs now share TextField's look (rounded, dark
+ * box, small uppercase label), errors use FormError, and the submit button is
+ * the solid one. How the form runs (useActionState over the team's logIn /
+ * register actions) is unchanged.
+ */
 
-/** A labelled input. Labels sit above, small and uppercase, like the site's captions. */
-export function AuthField({
-  label,
-  ...input
-}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <label className="flex flex-col gap-2">
-      <span className="text-[11px] uppercase tracking-[0.1em] text-muted">{label}</span>
-      <input className={inputClass} {...input} />
-    </label>
-  );
+/** Kept for anything that still wants the input look on its own. */
+export const inputClass = fieldInputClass;
+
+/**
+ * A labelled input. Labels sit above, small and uppercase, like the site's
+ * captions. Now a thin wrapper over TextField, so it also takes `optional`
+ * and `hint`.
+ */
+export function AuthField(props: React.ComponentProps<typeof TextField>) {
+  return <TextField {...props} />;
 }
 
 /**
@@ -30,33 +35,37 @@ export default function AuthForm({
   submitLabel,
   pendingLabel,
   footer,
+  note,
   children,
 }: {
   action: (state: AuthFormState, formData: FormData) => Promise<AuthFormState>;
   submitLabel: string;
   pendingLabel: string;
   footer: { text: string; linkLabel: string; href: string };
-  children: React.ReactNode;
+  /** Small print under the button, e.g. the Terms line on register. */
+  note?: ReactNode;
+  children: ReactNode;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-5">
       {children}
 
-      <p aria-live="polite" className="min-h-5 text-[13px] text-[#ff6b6b]">
-        {state?.error}
-      </p>
+      {/* Same live-region job as before; FormError has role="alert". */}
+      {state?.error ? <FormError>{state.error}</FormError> : null}
 
       <button
         type="submit"
         disabled={pending}
-        className={`${pillClass.md} cursor-pointer disabled:cursor-wait disabled:opacity-60`}
+        className={`${solidButtonClass} w-full disabled:cursor-wait disabled:opacity-60`}
       >
         {pending ? pendingLabel : submitLabel}
       </button>
 
-      <p className="text-[13px] text-muted">
+      {note}
+
+      <p className="text-center text-[13px] text-muted">
         {footer.text}{" "}
         <Link href={footer.href} className="text-foreground underline underline-offset-4">
           {footer.linkLabel}

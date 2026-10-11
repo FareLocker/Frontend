@@ -1,4 +1,6 @@
 import { isLit, shimmer } from "./dither";
+import { OUTLINES, TRIANGLES } from "./plane-model";
+import { cross, dot, length3, LIGHT, sub, unit, type Vec3 } from "./vec3";
 
 /*
  * The 3D plane, drawn in dots.
@@ -6,6 +8,7 @@ import { isLit, shimmer } from "./dither";
  * How it works, in the order the code does it:
  *
  *   1. MODEL   The plane is ~70 triangles with hand-typed corner coordinates.
+ *              It lives in plane-model.ts, shared with the globe animation.
  *   2. PATH    A list of points in space, joined into one smooth closed loop.
  *   3. POSE    Each frame: where the plane is on the path, which way its nose
  *              points, and how far it is rolled into the turn.
@@ -18,9 +21,6 @@ import { isLit, shimmer } from "./dither";
  * Space is measured from the viewer: x to the right, y up, z away.
  * To change the flight, edit WAYPOINTS. Nothing else needs to move.
  */
-
-type Vec3 = [number, number, number];
-type Triangle = [Vec3, Vec3, Vec3];
 
 /**
  * [how far down the stage (0 top, 1 bottom), where the text ends (0 left, 1 right)]
@@ -36,6 +36,12 @@ export type PlaneFlybyOptions = {
   horizon?: number;
   /** Outline of the text the plane flies behind. Omit for no dimming. */
   textStops?: TextStop[];
+  /**
+   * The colour of whatever is behind the canvas. When given, the plane and
+   * its trail are painted solid in it first, so nothing behind the canvas
+   * (the page's stars) shows through the gaps between their dots.
+   */
+  backdrop?: string;
 };
 
 export type PlaneFlyby = {
@@ -57,83 +63,9 @@ const NEAR = 1.6; // nothing closer to the viewer than this is drawn
 const VIEW = 0.7; // half the horizontal field of view, as x / z at the edge
 const SPEED = 17; // units per second, before easing
 const TRAIL_DOTS = 150;
-const DIM = 0.26; // dot opacity behind text
+const OPACITY = 0.8; // how strongly the dots are drawn, 0 to 1
+const DIM = 0.26; // of that, how much is left behind text
 const NARROW = 900; // below this width text spans the stage: dim everything
-
-// ---------------------------------------------------------------- 1. MODEL
-// Nose along +x, up +y, wings along z. About 5.5 units long and wide.
-
-const TRIANGLES: Triangle[] = [];
-/** Edges of the thin, flat parts. See the note where they are drawn. */
-const OUTLINES: [Vec3, Vec3][] = [];
-
-const quad = (a: Vec3, b: Vec3, c: Vec3, d: Vec3) => {
-  TRIANGLES.push([a, b, c], [a, c, d]);
-};
-/** A ring of `sides` points around the x axis, for tubes. */
-const ring = (
-  x: number,
-  radius: number,
-  cy: number,
-  cz: number,
-  sides: number,
-  turn: number,
-): Vec3[] =>
-  Array.from({ length: sides }, (_, i) => {
-    const angle = (Math.PI * 2 * i) / sides + turn;
-    return [x, cy + radius * Math.sin(angle), cz + radius * Math.cos(angle)];
-  });
-const tube = (front: Vec3[], back: Vec3[]) => {
-  front.forEach((_, i) => {
-    const j = (i + 1) % front.length;
-    quad(front[i], front[j], back[j], back[i]);
-  });
-};
-const cone = (tip: Vec3, base: Vec3[]) => {
-  base.forEach((_, i) => {
-    TRIANGLES.push([tip, base[i], base[(i + 1) % base.length]]);
-  });
-};
-
-// Fuselage: a six-sided tube that narrows to the tail, capped by two cones.
-const body = ring(1.85, 0.36, 0, 0, 6, Math.PI / 6);
-const waist = ring(-1.5, 0.36, 0, 0, 6, Math.PI / 6);
-const rear = ring(-2.25, 0.2, 0.13, 0, 6, Math.PI / 6);
-tube(body, waist);
-tube(waist, rear);
-cone([2.7, -0.06, 0], body);
-cone([-2.8, 0.2, 0], rear);
-
-for (const side of [1, -1]) {
-  // Wing
-  const w1: Vec3 = [0.8, -0.12, 0.3 * side];
-  const w2: Vec3 = [-0.55, -0.12, 0.3 * side];
-  const w3: Vec3 = [-1.1, 0.1, 2.75 * side];
-  const w4: Vec3 = [-0.55, 0.1, 2.75 * side];
-  quad(w1, w2, w3, w4);
-  OUTLINES.push([w1, w4], [w4, w3], [w3, w2]);
-  // Tailplane
-  const t1: Vec3 = [-1.85, 0.16, 0.15 * side];
-  const t2: Vec3 = [-2.45, 0.16, 0.15 * side];
-  const t3: Vec3 = [-2.72, 0.22, 1.05 * side];
-  const t4: Vec3 = [-2.38, 0.22, 1.05 * side];
-  quad(t1, t2, t3, t4);
-  OUTLINES.push([t1, t4], [t4, t3], [t3, t2]);
-  // Engine: a short four-sided box under the wing
-  const intake = ring(0.85, 0.18, -0.42, 1.15 * side, 4, Math.PI / 4);
-  const exhaust = ring(-0.1, 0.15, -0.42, 1.15 * side, 4, Math.PI / 4);
-  tube(intake, exhaust);
-  quad(intake[0], intake[1], intake[2], intake[3]);
-  quad(exhaust[0], exhaust[1], exhaust[2], exhaust[3]);
-}
-
-// Tail fin
-const f1: Vec3 = [-1.75, 0.3, 0];
-const f2: Vec3 = [-2.6, 0.25, 0];
-const f3: Vec3 = [-2.82, 1.25, 0];
-const f4: Vec3 = [-2.45, 1.25, 0];
-quad(f1, f2, f3, f4);
-OUTLINES.push([f1, f4], [f4, f3], [f3, f2]);
 
 // ----------------------------------------------------------------- 2. PATH
 // One closed loop. The first five points lie on a straight line, so the plane
@@ -165,27 +97,14 @@ const WAYPOINTS: Vec3[] = [
   [-32, 32, 92],
 ];
 
-const length3 = (v: Vec3) => Math.hypot(v[0], v[1], v[2]);
-const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const cross = (a: Vec3, b: Vec3): Vec3 => [
-  a[1] * b[2] - a[2] * b[1],
-  a[2] * b[0] - a[0] * b[2],
-  a[0] * b[1] - a[1] * b[0],
-];
-const unit = (v: Vec3): Vec3 => {
-  const size = length3(v) || 1;
-  return [v[0] / size, v[1] / size, v[2] / size];
-};
 const UP: Vec3 = [0, 1, 0];
-/** Direction the light comes from: above, to the left, on the viewer's side. */
-const LIGHT = unit([-0.35, 0.75, -0.55]);
 
 export function createPlaneFlyby({
   color,
   flatten = 1,
   horizon = 0.52,
   textStops,
+  backdrop,
 }: PlaneFlybyOptions): PlaneFlyby {
   const way = WAYPOINTS.map((p): Vec3 => [p[0], p[1] * flatten, p[2]]);
   const count = way.length;
@@ -442,6 +361,15 @@ export function createPlaneFlyby({
 
     // --------------------------------------------------------------- 6. DOTS
     ctx.clearRect(0, 0, width, height);
+    if (backdrop) {
+      // A full cell, gaps included, wherever the plane or its trail is.
+      ctx.fillStyle = backdrop;
+      for (let i = 0; i < brightness.length; i++) {
+        if (brightness[i] > 0) {
+          ctx.fillRect((i % cols) * CELL, Math.floor(i / cols) * CELL, CELL, CELL);
+        }
+      }
+    }
     ctx.fillStyle = color;
     const narrow = width < NARROW;
     for (let gy = 0; gy < rows; gy++) {
@@ -451,7 +379,7 @@ export function createPlaneFlyby({
         if (value <= 0 || !isLit(value + shimmer(), gx, gy)) continue;
         // 1 behind the text, 0 clear of it, with a short ramp between.
         const behindText = Math.max(0, Math.min(1, (edge + 0.06 - gx / cols) / 0.06));
-        ctx.globalAlpha = 1 - (1 - DIM) * behindText;
+        ctx.globalAlpha = OPACITY * (1 - (1 - DIM) * behindText);
         ctx.fillRect(gx * CELL, gy * CELL, CELL - 1, CELL - 1);
       }
     }

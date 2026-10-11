@@ -8,6 +8,11 @@ import type { Money } from "@/types/fare";
  * to a user (the locks table has no user id). getAccount() answers with a
  * fixed profile and no locks. Replace its body with real requests; the page
  * and the membership ticket only depend on these types.
+ *
+ * NOTE (update 02, left as is on purpose): update 02 wanted getAccount() to
+ * take its locks from getLocks() in lib/locks.ts (mock data) and add up
+ * totalSaved from their payouts. That would put mock locks on a real page, so
+ * it was not applied. Do it once getLocks() calls the backend.
  */
 
 export type LockStatus = "open" | "exercised" | "expired" | "pending_verification";

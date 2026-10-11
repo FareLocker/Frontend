@@ -9,9 +9,13 @@ export const TBD = {
   coverLimit: "[COVER LIMIT]",
   /** What happens to the fee if the customer never books. */
   refundTerms: "[REFUND TERMS]",
+  /** How long a lock's price or an exercise payout is held, e.g. "2 minutes". */
+  quoteHold: "[HOLD TIME]",
+  /** Taxes and charges on a lock fee, if any, e.g. "$0". */
+  lockTaxes: "[TAXES]",
   /** Card processor shown in the trust strip, e.g. "Stripe". */
   paymentProvider: "[PAYMENT PROVIDER]",
-  /** Worked example: fill all five from one real route and date. */
+  /** Worked example: fill all four from one real route and date. */
   example: {
     lockedFare: "[LOCKED FARE]",
     lockFee: "[LOCK FEE]",

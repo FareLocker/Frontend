@@ -8,12 +8,14 @@ import Label from "@/components/Label";
 import LabelValue from "@/components/LabelValue";
 import PillLink, { pillClass } from "@/components/PillLink";
 import TicketDemo from "@/components/TicketDemo";
+import ActivityCard from "@/components/account/ActivityCard";
 import { logOut } from "@/app/login/actions";
 import LockList from "@/components/account/LockList";
 import { cardHeadingClass } from "@/components/trade/FlightDetailsCard";
 import { activeLocks, getAccount } from "@/lib/account";
 import { getCurrentUser } from "@/lib/auth";
 import { formatMoney } from "@/lib/format";
+import { parseTransactionType } from "@/lib/transaction-types";
 import { getBalance } from "@/lib/wallet";
 import type { Money } from "@/types/fare";
 
@@ -21,30 +23,35 @@ export const metadata: Metadata = {
   title: "Account | FareLocker",
 };
 
+type SearchParams = PageProps<"/account">["searchParams"];
+
 /*
- * The member's account: who they are, their balance, and their locks.
- * Who is signed in is only known per request, so everything that depends on
- * it sits inside <Suspense>: the frame appears at once and the rest streams in.
+ * The member's account: who they are, their balance, their locks, and (update
+ * 02) what has moved through their wallet.
+ * Who is signed in, and which transaction type is picked (/account?type=…),
+ * are only known per request, so everything that depends on them sits inside
+ * <Suspense>: the frame appears at once and the rest streams in.
  */
-export default function AccountPage() {
+export default function AccountPage({ searchParams }: PageProps<"/account">) {
   return (
     <main className="flex-1">
       <Container className="flex flex-col gap-5 pt-10 pb-20 md:pt-14">
         <Suspense fallback={<AccountSkeleton />}>
-          <AccountView />
+          <AccountView searchParams={searchParams} />
         </Suspense>
       </Container>
     </main>
   );
 }
 
-async function AccountView() {
+async function AccountView({ searchParams }: { searchParams: SearchParams }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [account, balance] = await Promise.all([
+  const [account, balance, { type }] = await Promise.all([
     getAccount(user),
     readBalance(user.id),
+    searchParams,
   ]);
   const active = activeLocks(account);
 
@@ -125,6 +132,13 @@ async function AccountView() {
             </div>
             <LockList locks={account.locks} />
           </Card>
+
+          {/*
+           * NEW (update 02): Activity card with a ?type= filter. Rows are mock
+           * data from lib/transactions.ts. The backend already has
+           * GET /users/{id}/wallet/transactions?entry_type=… to wire in there.
+           */}
+          <ActivityCard type={parseTransactionType(type)} />
 
           <section aria-label="Membership card" className="flex flex-col gap-4 pt-5">
             <Label className="text-muted">Membership card</Label>

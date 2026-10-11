@@ -16,6 +16,19 @@ export const pillClass = {
   sm: `inline-flex min-h-11 items-center gap-1.5 rounded-full border border-muted px-4 text-xs uppercase transition-colors duration-300 hover:border-foreground ${focusRing}`,
 } as const;
 
+/**
+ * The solid white button for a page's one main action ("Lock this fare",
+ * "Create account"). It turns the accent colour on hover. Works on a link or
+ * a <button>; add "w-full" where it should fill its column.
+ */
+export const solidButtonClass = `flex min-h-[60px] cursor-pointer items-center justify-center rounded-full bg-foreground px-6 text-center text-[1.05rem] font-semibold tracking-[-0.01em] text-background transition-colors duration-300 hover:bg-accent ${focusRing}`;
+
+/**
+ * The same solid white button, a size down, for when it sits in a row with
+ * pills (the Exercise button on My locks).
+ */
+export const solidButtonSmallClass = `flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-foreground px-[26px] text-center text-[0.9rem] font-semibold tracking-[-0.01em] text-background transition-colors duration-300 hover:bg-accent ${focusRing}`;
+
 export default function PillLink({
   href,
   children,
