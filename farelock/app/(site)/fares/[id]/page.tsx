@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import Container from "@/components/Container";
+import FarePoller from "@/components/trade/FarePoller";
 import FareRangeCards from "@/components/trade/FareRangeCards";
 import FareTradeHero from "@/components/trade/FareTradeHero";
 import FareTradeLayout from "@/components/trade/FareTradeLayout";
@@ -76,6 +77,7 @@ async function FareTrade({ params }: { params: Params }) {
 
   return (
     <>
+      <FarePoller />
       {/* LATER: go back to the search the visitor came from (/search?q=…). */}
       <Link
         href={ended ? "/locks" : "/search"}

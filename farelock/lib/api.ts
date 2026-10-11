@@ -13,6 +13,8 @@ export class ApiError extends Error {
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
+    // Live backend data; never serve a cached Next response for these.
+    cache: "no-store",
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });

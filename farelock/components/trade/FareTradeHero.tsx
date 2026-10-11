@@ -71,12 +71,8 @@ export default function FareTradeHero({
             </p>
           ) : (
             /*
-             * LATER (fare updates): the fare on this page is fetched once,
-             * when the page loads, and does not change after that. When the
-             * backend can push or be polled for a new fare, refresh the
-             * page's data here (for example router.refresh() on a timer, or
-             * a subscription) and show when it was last checked next to
-             * this label.
+             * FarePoller re-fetches this page every few seconds. LATER: show
+             * when the fare was last checked next to this label.
              */
             <p className="flex items-center gap-2.5 rounded-full bg-card/80 px-4 py-2 text-xs font-bold uppercase tracking-[0.05em] backdrop-blur-sm">
               <span aria-hidden className="relative h-2.5 w-2.5">
