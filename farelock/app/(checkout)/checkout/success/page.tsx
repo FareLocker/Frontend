@@ -5,7 +5,7 @@ import Container from "@/components/Container";
 import CheckoutHeader from "@/components/checkout/CheckoutHeader";
 import LockActivation from "@/components/checkout/LockActivation";
 import { getCurrentUser } from "@/lib/auth";
-import { getLockForFare } from "@/lib/locks";
+import { getLockForFare, getLocks } from "@/lib/locks";
 
 export const metadata: Metadata = {
   title: "Your fare is locked | FareLocker",
@@ -37,11 +37,16 @@ async function LockSuccess({ searchParams }: { searchParams: SearchParams }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { fare: fareParam } = await searchParams;
+  const { fare: fareParam, lock: lockParam } = await searchParams;
   const fareId = (Array.isArray(fareParam) ? fareParam[0] : fareParam) ?? "";
+  const lockId = (Array.isArray(lockParam) ? lockParam[0] : lockParam) ?? "";
   const fareHref = `/fares/${encodeURIComponent(fareId)}`;
-  const lock = fareId ? await getLockForFare(fareId) : null;
-  if (!lock || lock.status !== "open") redirect(fareHref);
+  const lock = lockId
+    ? (await getLocks()).find((candidate) => candidate.id === lockId)
+    : fareId
+      ? await getLockForFare(fareId)
+      : null;
+  if (!lock || lock.status !== "open" || lock.fareId !== fareId) redirect(fareHref);
 
   return <LockActivation fareHref={fareHref} />;
 }

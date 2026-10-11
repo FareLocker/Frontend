@@ -7,6 +7,8 @@ import { authHeaders, getCurrentUser } from "@/lib/auth";
 
 export type BuyLockState = { error: string; feeCents?: number } | null;
 
+type LockPurchaseResponse = { id: number };
+
 export async function buyLock(
   _state: BuyLockState,
   formData: FormData,
@@ -29,8 +31,9 @@ export async function buyLock(
     return { error: "This FareLock quote is invalid. Return to the fare and try again." };
   }
 
+  let purchase: LockPurchaseResponse;
   try {
-    await api("/locks/farelock/purchase", {
+    purchase = await api<LockPurchaseResponse>("/locks/farelock/purchase", {
       method: "POST",
       headers: await authHeaders(),
       body: JSON.stringify({
@@ -78,7 +81,11 @@ export async function buyLock(
   revalidatePath(`/fares/${fareId}`);
   revalidatePath("/wallet");
   revalidatePath("/account");
-  // Keep the confirmed purchase separate from the fare page so the member
-  // sees the lock-activation animation before arriving at their active lock.
-  redirect(`/checkout/success?fare=${encodeURIComponent(fareId)}`);
+  // The backend-issued ID identifies the exact lock that just succeeded.
+  // The success page still checks that it belongs to this member and fare
+  // before it mounts the activation animation.
+  redirect(
+    `/checkout/success?fare=${encodeURIComponent(fareId)}&lock=${purchase.id}`,
+  );
+
 }

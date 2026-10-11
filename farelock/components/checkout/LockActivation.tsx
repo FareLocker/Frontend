@@ -1,6 +1,5 @@
 import Link from "next/link";
-import GlobeOrbit from "@/components/GlobeOrbit";
-import Logo from "@/components/Logo";
+import LogoIntro from "@/components/LogoIntro";
 import { solidButtonClass } from "@/components/PillLink";
 
 /** The one-time confirmation shown after FareLocker has created a lock. */
@@ -24,11 +23,12 @@ export default function LockActivation({ fareHref }: { fareHref: string }) {
 
       <div
         role="img"
-        aria-label="A plane circling the FareLocker globe"
-        className="relative mx-auto aspect-video min-h-[20rem] w-full max-w-6xl overflow-hidden rounded-[2rem] border border-foreground/10 bg-pitch shadow-2xl motion-reduce:hidden"
+        aria-label="A plane transforms the FareLocker globe into the FareLocker logo"
+        className="relative mx-auto flex min-h-[20rem] w-full max-w-6xl items-center overflow-hidden rounded-[2rem] border border-foreground/10 bg-pitch shadow-2xl motion-reduce:hidden"
       >
-        <GlobeOrbit />
-        <Logo className="absolute right-7 bottom-7 h-5 w-auto opacity-80 sm:right-10 sm:bottom-10 sm:h-6" />
+        <div className="aspect-[732/95] w-full">
+          <LogoIntro start="globe" upTo="logo" logoWidth={0.9} />
+        </div>
       </div>
 
       <div className="mx-auto hidden w-full max-w-xl rounded-[2rem] border border-foreground/10 bg-pitch px-7 py-14 text-center motion-reduce:block">
