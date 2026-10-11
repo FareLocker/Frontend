@@ -62,5 +62,5 @@ async function ResultsHeading({ searchParams }: { searchParams: SearchParams }) 
 async function Results({ searchParams }: { searchParams: SearchParams }) {
   const query = await readQuery(searchParams);
   if (!query) return null;
-  return <FareSearchList fares={await searchFares(query)} />;
+  return <FareSearchList fares={await searchFares(query)} query={query} />;
 }

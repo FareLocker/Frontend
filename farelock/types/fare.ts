@@ -82,6 +82,8 @@ export type FareDetail = FareSearchResult & {
    * out from it, so they can never disagree with the chart.
    */
   history: FarePoint[];
+  /** Whether the displayed history came from Google Flights or local tracking. */
+  historySource: "google" | "local";
   aircraft: string;
   baggage: string;
   fareRules: string;
