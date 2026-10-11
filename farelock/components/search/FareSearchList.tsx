@@ -1,6 +1,5 @@
 import type { FareSearchResult } from "@/types/fare";
 import FareSearchCard from "./FareSearchCard";
-import FareSearchCardSkeleton from "./FareSearchCardSkeleton";
 
 /** The list of results, or a message when there are none. */
 export default function FareSearchList({
@@ -29,17 +28,5 @@ export default function FareSearchList({
         </li>
       ))}
     </ul>
-  );
-}
-
-/** Shown in the list's place while results load. */
-export function FareSearchListSkeleton({ count = 3 }: { count?: number }) {
-  return (
-    <div role="status" className="flex flex-col gap-5">
-      <span className="sr-only">Loading fares</span>
-      {Array.from({ length: count }, (_, index) => (
-        <FareSearchCardSkeleton key={index} />
-      ))}
-    </div>
   );
 }

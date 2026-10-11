@@ -1,0 +1,1202 @@
+// @ts-nocheck — ported from farelocker-logo-animation-short.html; public API is typed below.
+import { isLit, shimmer } from "./dither";
+import { OUTLINES, TRIANGLES } from "./plane-model";
+import { cross, dot, length3, LIGHT, sub, unit, type Vec3 } from "./vec3";
+
+/*
+ * FareLocker logo intro animation.
+ *
+ * Extracted from farelocker-logo-animation-short.html. Shapes, timeline and
+ * drawing live here; the canvas runner is components/LogoIntro.tsx via
+ * useDitherCanvas. Dot decisions come from dither.ts; the plane mesh from
+ * plane-model.ts.
+ */
+
+export type LogoIntroOptions = {
+  color: string;
+  /** Where the middle of the finished logo sits, as fractions of the stage. */
+  centre?: [number, number];
+  /** Width of the finished logo, as a fraction of the stage's width. */
+  logoWidth?: number;
+  /**
+   * "globe" starts with the globe and the plane going round it.
+   * "lock" skips that: the body is already there and the plane draws the shackle.
+   */
+  start?: "globe" | "lock";
+  /**
+   * "logo" plays through the letters and refine.
+   * "icon" stops on the finished lock.
+   */
+  upTo?: "logo" | "icon";
+  /** When true, restarts after a pause on the last frame. */
+  loop?: boolean;
+};
+
+export type LogoIntro = {
+  draw: (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    clock: number,
+  ) => void;
+  advance: (time: number, dt: number) => number;
+  poseDistance: number;
+  duration: number;
+};
+
+const CELL = 6; // px per dot cell on a normal stage; smaller on a small one
+const DOT_ALPHA = 0.8; // strength of the dots. The finished logo ends at 1.
+const GLOBE_ALPHA = 0.7; // the globe is dimmer still, so the plane stands out
+const HERO = 0.74; // how much of the stage the globe-and-lock act fills
+const TWIST = 30; // degrees the view is turned at the start. See ROUTE.
+const GLOBE_RADIUS = 26;
+const ORBIT = 34; // how far from the middle of the globe the plane flies round it
+const TILT = 23.4; // degrees the north pole leans to the right
+const LEAN = 14; // degrees the north pole leans towards the viewer
+const SPIN_SECONDS = 20; // one full turn of the globe
+const WHIRL = 420; // extra degrees it spins as it speeds up and becomes the lock
+const BLUR = 1 / 50; // seconds of spin smeared into one frame, so a fast spin streaks
+const START_LONGITUDE = -50; // the longitude facing the viewer at the start
+const PLANE_SIZE = 2.7; // the landing page plane is 1
+const PLANE_SPEED = 60; // units per second
+const HURRY = 2.2; // how much faster it flies while hidden behind the globe
+const EYE = 156; // how far the viewer is from the logo; nearer planes look bigger
+const FINE = 3; // the plane is worked out this many times finer than the dots
+const TRAIL_DOTS = 90;
+const TRAIL_GAP = 0.75; // units between one trail dot and the next
+
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const mix = (a, b, f) => a + (b - a) * f;
+/** 0 below `from`, 1 above `to`, and a smooth ramp between. */
+const ramp = (from, to, x) => {
+  const f = clamp01((x - from) / (to - from));
+  return f * f * (3 - 2 * f);
+};
+/** A number from 0 to 1 that is always the same for the same cell. */
+const scatter = (gx, gy) => {
+  const s = Math.sin(gx * 12.9898 + gy * 78.233) * 43758.5453;
+  return s - Math.floor(s);
+};
+/**
+ * isLit with a twinkle, except that a full cell always gets its dot: the
+ * inside of the logo should be solid, with the twinkle kept to its edges.
+ */
+const fills = (value, gx, gy, twinkle) =>
+  value >= 0.98 || isLit(value + shimmer(twinkle), gx, gy);
+const RADIANS = Math.PI / 180;
+// The globe's own axes (y up). NORTH is its pole; FRONT is the point on its
+// equator nearest the viewer; EAST is a quarter turn round from FRONT.
+const NORTH = [
+  Math.cos(LEAN * RADIANS) * Math.sin(TILT * RADIANS),
+  Math.cos(LEAN * RADIANS) * Math.cos(TILT * RADIANS),
+  -Math.sin(LEAN * RADIANS),
+];
+const FRONT = unit(sub([0, 0, -1], NORTH.map((n) => n * -NORTH[2])));
+const EAST = cross(FRONT, NORTH);
+// --------------------------------------------------------------- 1. SHAPES
+// The icon, straight from FareLockerIcon.svg.
+const ICON_BODY =
+  "M79.07 47.03H131.04A6.91 6.91 0 0 1 137.95 53.94V86.09A6.91 6.91 0 0 1 131.04 93.00H115.25V88.96A10.20 10.20 0 0 0 94.86 88.96V93.00H79.07A6.91 6.91 0 0 1 72.16 86.09V53.94A6.91 6.91 0 0 1 79.07 47.03ZM102.69 63.59A5.59 5.59 0 1 1 107.43 63.59L109.00 70.01H101.11Z";
+const ICON_SHACKLE =
+  "M79.73 49.03V36.96A25.33 25.33 0 0 1 130.38 36.96V49.03H116.90V36.96A11.84 11.84 0 0 0 93.22 36.96V49.03Z";
+// The letters. These were traced from the logo PNG, because the wordmark was
+// not available as outlines. If you have the real ones, paste them in here,
+// in the icon's units, and update LOGO to match.
+const LETTER_F =
+  "M9.94 92.69L9.36 92.46L9.36 52.25C9.36 21.31 9.43 11.96 9.67 11.72C10.12 11.27 61.08 11.27 61.53" +
+  " 11.72C62.13 12.32 61.95 29.08 61.34 29.41C61.02 29.58 56.63 29.68 48.86 29.68L36.87 29.68L35.65" +
+  " 30.30C30.49 32.94 30.70 39.57 36.04 42.25C37.09 42.78 37.42 42.80 49.07 42.80C55.65 42.80 61.21" +
+  " 42.87 61.43 42.95C61.79 43.09 61.84 44.07 61.84 51.31L61.84 59.51L61.26 59.64C60.94 59.71 55.70" +
+  " 59.81 49.62 59.85C37.42 59.93 37.09 59.97 34.99 61.74C32.02 64.24 32.00 64.39 32.00 79.68C32.00" +
+  " 92.02 31.98 92.44 31.50 92.69C30.87 93.03 10.77 93.03 9.94 92.69Z";
+const LETTERS_REST =
+  "M387.90 94.08C363.16 91.43 346.75 69.44 350.97 44.60C353.84 27.73 367.18 13.86 383.40 10.88C388." +
+  "50 9.95 389.46 9.85 393.43 9.85C396.26 9.85 398.30 9.98 399.55 10.25C400.59 10.46 401.81 10.64 4" +
+  "02.28 10.64C403.95 10.64 410.34 12.79 413.84 14.53C431.30 23.21 440.29 43.74 435.20 63.33C429.83" +
+  " 84.02 410.61 96.51 387.90 94.08ZM480.76 94.09C461.76 92.14 446.87 79.05 442.91 60.80C442.14 57." +
+  "27 442.22 47.01 443.04 43.19C446.03 29.28 455.84 17.85 469.06 12.88C487.40 5.97 508.51 11.35 519" +
+  ".22 25.65C520.65 27.56 521.29 26.78 511.99 34.50C503.05 41.92 503.56 41.68 501.69 39.30C492.83 2" +
+  "8.03 473.79 29.99 467.79 42.81C465.09 48.57 465.34 57.32 468.34 62.53C471.99 68.87 477.58 71.85 " +
+  "485.82 71.86C492.23 71.87 495.38 70.62 499.95 66.27L502.30 64.04L503.49 64.69C507.68 66.99 520.4" +
+  "0 75.28 520.62 75.85C520.98 76.81 519.07 79.43 515.42 82.97C506.41 91.71 494.58 95.51 480.76 94." +
+  "09ZM154.45 92.73L153.55 92.57L153.48 52.34C153.43 21.44 153.49 12.02 153.72 11.74C153.99 11.42 1" +
+  "56.66 11.38 172.57 11.47L191.10 11.58L194.06 12.26C209.87 15.90 217.70 24.58 217.77 38.55C217.81" +
+  " 45.74 216.47 49.81 211.77 56.84C208.19 62.19 208.23 63.53 212.14 69.84C218.08 79.43 222.27 92.2" +
+  "0 219.68 92.85C218.28 93.20 196.88 92.84 196.64 92.46C196.52 92.25 196.05 90.59 195.61 88.76C192" +
+  ".84 77.38 188.57 71.87 182.50 71.87C177.11 71.87 176.57 73.00 176.57 84.40C176.57 92.07 176.55 9" +
+  "2.44 176.07 92.69C175.53 92.98 156.06 93.02 154.45 92.73ZM229.82 92.73L229.18 92.55L229.11 52.30" +
+  "C229.05 14.69 229.07 12.03 229.48 11.73C230.23 11.18 280.84 11.27 281.39 11.83C281.84 12.28 281." +
+  "89 28.88 281.44 29.33C281.32 29.45 275.42 29.61 268.32 29.68C255.60 29.80 255.40 29.81 254.35 30" +
+  ".38C250.25 32.57 250.02 39.47 253.97 42.12L255.08 42.87L267.92 43.00C277.73 43.10 280.86 43.21 2" +
+  "81.21 43.46C281.84 43.92 282.05 58.96 281.43 59.58C281.10 59.91 279.19 59.98 268.49 60.08L255.93" +
+  " 60.19L254.64 60.84C250.68 62.83 249.81 69.79 253.14 72.95C255.06 74.76 255.10 74.77 268.88 74.9" +
+  "0L281.31 75.02L281.55 75.65C282.07 77.03 281.84 92.40 281.29 92.69C280.72 93.00 230.90 93.03 229" +
+  ".82 92.73ZM296.00 92.69L295.42 92.46L295.42 52.23C295.42 18.54 295.47 11.94 295.77 11.70C296.02 " +
+  "11.49 299.22 11.43 307.15 11.47L318.18 11.54L318.36 12.70C318.45 13.34 318.54 24.80 318.55 38.17" +
+  "C318.57 67.22 318.47 66.39 322.67 70.61C326.29 74.25 328.10 74.68 340.52 74.91L350.08 75.08L350." +
+  "08 83.82L350.08 92.55L349.44 92.73C348.47 93.00 296.67 92.97 296.00 92.69ZM531.83 92.73L530.93 9" +
+  "2.57L530.86 52.34C530.81 22.82 530.87 12.02 531.08 11.76C531.48 11.28 552.65 11.24 553.13 11.72C" +
+  "553.35 11.94 553.43 13.71 553.43 18.06C553.43 24.65 553.54 25.15 555.10 26.18C557.07 27.47 558.6" +
+  "4 26.56 562.97 21.57C566.54 17.47 569.11 14.57 570.77 12.78L572.03 11.41L585.87 11.41C594.74 11." +
+  "41 599.76 11.50 599.87 11.67C600.10 12.05 599.86 12.37 597.00 15.57C590.92 22.38 577.11 37.99 57" +
+  "4.92 40.54C569.89 46.37 568.86 51.18 571.47 56.54C572.65 58.96 571.40 57.50 595.95 85.04C602.64 " +
+  "92.55 602.65 92.55 601.73 92.80C600.96 93.01 574.25 93.00 572.51 92.79C570.97 92.60 572.08 93.76" +
+  " 562.52 82.47C557.94 77.06 557.07 76.45 555.25 77.39C553.46 78.32 553.43 78.42 553.43 85.78C553." +
+  "43 92.09 553.41 92.44 552.94 92.69C552.40 92.98 533.43 93.02 531.83 92.73ZM609.78 92.77C609.14 9" +
+  "2.71 608.46 92.53 608.26 92.36C607.77 91.96 608.08 11.92 608.57 11.61C609.12 11.26 660.05 11.37 " +
+  "660.40 11.72C660.85 12.18 660.84 29.05 660.38 29.34C660.21 29.46 654.26 29.61 647.18 29.68L634.2" +
+  "9 29.81L632.87 30.75C628.91 33.38 629.31 40.25 633.55 42.47C634.19 42.80 636.32 42.89 647.26 43." +
+  "02C658.37 43.16 660.25 43.24 660.45 43.57C660.85 44.19 660.78 59.40 660.38 59.71C660.18 59.88 65" +
+  "5.42 60.02 647.59 60.09C635.73 60.19 635.05 60.22 633.95 60.72C628.85 63.02 628.73 71.51 633.77 " +
+  "74.00L635.23 74.73L647.71 74.88C657.00 75.00 660.26 75.11 660.45 75.35C660.62 75.54 660.69 78.73" +
+  " 660.65 84.12L660.58 92.57L659.03 92.74C657.40 92.91 611.74 92.94 609.78 92.77ZM675.37 92.73L674" +
+  ".47 92.57L674.40 52.34C674.35 21.44 674.41 12.02 674.65 11.74C675.24 11.02 711.30 11.40 714.60 1" +
+  "2.16C730.60 15.83 738.65 24.69 738.65 38.63C738.65 45.51 737.29 49.77 733.03 56.23C728.90 62.48 " +
+  "728.92 63.07 733.38 70.45C737.89 77.92 740.63 84.97 741.13 90.41C741.39 93.17 742.33 92.96 729.8" +
+  "1 92.93C716.01 92.89 717.63 93.37 716.52 88.97C713.50 77.04 709.50 71.87 703.30 71.87C700.44 71." +
+  "87 699.50 72.28 698.39 74.06L697.62 75.30L697.45 83.75C697.33 89.76 697.19 92.32 696.97 92.59C69" +
+  "6.64 92.98 677.48 93.11 675.37 92.73ZM400.31 71.24C409.05 68.07 414.00 59.97 413.22 50.13C411.39" +
+  " 27.24 378.77 25.10 374.01 47.56C371.80 57.99 377.51 68.37 387.13 71.43C390.13 72.39 397.43 72.2" +
+  "8 400.31 71.24ZM188.30 48.26C194.50 45.06 194.67 35.08 188.57 32.14C182.07 29.00 175.45 32.88 17" +
+  "5.43 39.84C175.42 43.50 176.51 45.82 179.09 47.63C181.26 49.15 185.95 49.47 188.30 48.26ZM708.24" +
+  " 48.58C715.21 46.51 715.88 34.95 709.20 31.97C702.63 29.05 696.33 32.96 696.33 39.97C696.33 46.7" +
+  "6 701.58 50.56 708.24 48.58Z";
+
+// The same icon as numbers, so that the code can bend it.
+const BODY = { x: 105.055, y: 70.015, halfWidth: 32.895, halfHeight: 22.985, corner: 6.91 };
+const NOTCH = { x: 105.055, y: 88.96, radius: 10.195 }; // the arch cut into the bottom
+const KEYHOLE = { x: 105.06, y: 58.527, radius: 5.59, neck: 63.59, foot: 70.01, neckHalf: 2.37, footHalf: 3.945 };
+const SHACKLE = { x: 105.055, y: 36.96, radius: 18.585, halfWidth: 6.745, foot: 49.03 };
+const ICON = { x0: 72.16, x1: 137.95, y0: 11.63, y1: 93, cx: 105.055, cy: 52.315 };
+const LOGO = { x0: 9.36, x1: 741.22, y0: 9.61, y1: 94.5, cx: 375.29, cy: 52.06 };
+// How far along the shackle a point is: up the left leg, over, down the right.
+const LEG = SHACKLE.foot - SHACKLE.y;
+
+// ----------------------------------------------------------------- 2. LAND
+// LAND_COLS x LAND_ROWS bits, row by row from the north pole, each row
+// starting at longitude -180. A set bit is land. Made from Natural Earth's
+// 1:110m land outlines (public domain).
+
+const LAND_COLS = 180;
+const LAND_ROWS = 90;
+const LAND_BITS =
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+  "AOA/gP8BAAAAAAAAAAAAAAAAAAAAAAD4/////wcAAAAAAAAGAAAAAAAAAAAAgP/4//8PAPAAAAAA4AMAAAAAAAAAQADEh///" +
+  "/wAAAAAACABgAAAAAAAAAABwUT8A/v8PAAAAAAwA/D8AOAAAAAAA8JPtA8D/fwAAAAAwIPz//wMDAACAAgD4w/4H+P8HAAAc" +
+  "AAL7/////x8A/P//////////////8cFGSAAAAAAAAID//////////////x8ALAAEAAAAAAAA4P//////////////7///////" +
+  "/////wfw/////wAc4AEAAHz+//////////9/gP////8HeAAcAADw5////////////ADgAf//f4AvAAAAAH78////////P0QA" +
+  "AACA//8f8AcAAIBB4////////38ABwAAAPD//4//AQAAFAT/////////A3AAAAAA/P//+T8AAGDz//////////8DAwAAAMD/" +
+  "////AwAAsP//////////LwAAAAAA+P///2EAAAD+//////////8CAAAAAAD///8/AAAA4P//////////BwAAAAAA8P///wcA" +
+  "AAD+/+nz/////z8AAAAAAAD///8HAAAA/JgPPP//////MAAAAAAA8P//PwAAAOBH8v/n/////wcBAAAAAAD///8BAAAAPgD7" +
+  "f/7///8xEAAAAAAA4P//DwAAAMBhAP/v////f8YAAAAAAAD8//8AAAAA+AcA//////8jDwAAAAAAgP//AwAAAMD/APD/////" +
+  "PwgAAAAAAADw/x8AAAAA/n////////8HAAAAAAAAAPwDAwAAAOD////7////fwAAAAAAAACgHyAAAACA//9/f/7///8DAAAA" +
+  "AAAAAPQBAAAAAPz///cv+v//HwAAAAAAAAAAHiAAAADA/////g////8EAAAAAAAAAOAhCAAAAPz//99/4D//AAAAAAAAAAAA" +
+  "PAMGAADA/////Qf84BcAAAAAAAAAAAA/AAAAAPz//58fgAf+QAAAAAAAAAAAAA8AAADg////ewA4gA8EAAAAAAAAAADAAAAA" +
+  "APz///8BgAP4AQAAAAAAAAAAAAgOAADA////bwAwgAwAAAAAAAAAAAAA8Q8AAPj///8HAAEIAAEAAAAAAAAAAID/AQAA////" +
+  "fwBAAAEQAAAAAAAAAAAA+P8AAODh//8DAAA0GAAAAAAAAAAAAID/HwAAAPj/HwAAgMIBAAAAAAAAAAAA/P8BAACA//8AAAA4" +
+  "HgAAAAAAAAAAAMD/fwAAAPz/BwAAAOMFAQAAAAAAAAAA/P8/AACA/z8AAABgTvABAAAAAAAAAOD//w8AAPD/AwAAAAQAfAAA" +
+  "AAAAAAAA/P//AQAA/z8AAACAAoAPAAAAAAAAAID//w8AAPD/AwAAAAAAgAEAAAAAAAAA+P//AAAA/j8AAAAAAAAAAAAAAAAA" +
+  "AAD//wcAAPD/QwAAAACAIwAAAAAAAAAA8P9/AAAA/z8EAAAAAD8GAAAAAAAAAAD8/wcAAPD/cQAAAAD4fwAAAAAAAAAAgP8/" +
+  "AAAA/w8HAAAAgP8HAAAAAAAAAAD4/wMAAOD/MAAAAAD//wEAAAAAAAAAgP8fAAAA/g8DAAAA+P8fAAAAAAAAAAD4PwAAAOB/" +
+  "EAAAAID//wMAAAAAAAAAwP8DAAAA/AMAAAAA+P9/AAAAAAAAAAD8HwAAAMA/AAAAAID//wcAAAAAAAAAwP8BAAAA+AEAAAAA" +
+  "8P9/AAAAAAAAAAD8DwAAAIAPAAAAAAAP/gMAAAAAAAAAwB8AAAAAAAAAAAAAEIAfAAAAAAAAAAD+AQAAAAAAAAAAAAAA8AEg" +
+  "AAAAAAAA4A8AAAAAAAAAAAAAAAAAAAYAAAAAAAA+AAAAAAAAAAAAAAAAgAAQAAAAAAAA4AMAAAAAAAAAAAAAAAAIgAEAAAAA" +
+  "AAAeAAAAAAAAAAAAAAAAAAAMAAAAAAAA4AEAAAAAAAAAAAAAAAAAAAAAAAAAAAAfAAAAAAAAAAAAAAAAAAAAAAAAAAAA8AAA" +
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAOAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+  "AAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAB4AOD53/8HAAAAAAAAAAAwAAAAAACA/P/h/////w8A" +
+  "AAAAAAAA4AcAAAD4////z///////PwAAAAAAGAb8AACA//////////////8HAAD4/////wMAAP7/////////////HwAA+f//" +
+  "//8BAID///////////////8AAPL/////BwAO////////////////DwAA+v////8HMPD//////////////z8AAOD/////////" +
+  "////////////////PwBAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+  "AAAAAAAAAAAA";
+
+/** Unpack LAND_BITS into one number per square: 1 for land, 0 for sea. */
+function unpackLand() {
+  const packed = atob(LAND_BITS);
+  const land = new Uint8Array(LAND_COLS * LAND_ROWS);
+  for (let i = 0; i < land.length; i++) {
+    land[i] = (packed.charCodeAt(i >> 3) >> (i & 7)) & 1;
+  }
+  return land;
+}
+
+// ---------------------------------------------------------------- 4. ROUTE
+// The plane's path, start to finish, as one unbroken curve. It is flown once.
+//
+// Everything here is laid out as it is at the END, with the lock upright. For
+// the first part of the animation the view is turned TWIST degrees, so what
+// is described here as straight up the screen is seen leaning TWIST degrees
+// to the right. As the plane climbs away from the globe the view turns back.
+//
+// The plane goes twice round the globe. Each time round is a circle seen
+// almost edge-on, so on screen it is a long thin loop: across the front of
+// the globe one way, and back behind it the other.
+//   climb    how steeply the pass slopes up to the right, in degrees
+//   offset   how far from the middle of the globe the pass crosses its face,
+//            as a fraction of ORBIT. Positive is to the right of the way the
+//            plane is going. It is what opens the circle out into a loop.
+
+const PASSES = [
+  // Seen at the start: left to right, climbing 6 degrees.
+  { climb: 6 + TWIST, offset: 0.15 },
+  // Seen at the start: from the bottom left, climbing 60 degrees. With the
+  // lock upright: straight up.
+  { climb: 90, offset: -0.2 },
+];
+/**
+ * Where the plane is on a pass, as [right, down, away] from the middle of the
+ * globe. `turn` is in degrees: 0 at the left-hand end of the pass, 90 in
+ * front of the globe, 180 at the right-hand end, 270 behind the globe.
+ */
+const onPass = ({ climb, offset }, turn) => {
+  const slope = climb * RADIANS;
+  const along = -Math.cos(turn * RADIANS) * ORBIT;
+  const aside = Math.sin(turn * RADIANS) * ORBIT * offset;
+  return [
+    along * Math.cos(slope) + aside * Math.sin(slope),
+    aside * Math.cos(slope) - along * Math.sin(slope),
+    -Math.sin(turn * RADIANS) * ORBIT * Math.sqrt(1 - offset * offset),
+  ];
+};
+
+// Half way across the front on its second pass, the plane is flying exactly
+// across the screen. There it stops following the circle and carries straight
+// on, in the direction it is already going and at the speed it is already
+// going. Nothing about its flight changes at that moment, so nothing shows.
+//
+// That straight line is the left leg of the shackle. So the line decides
+// where the lock is: its left leg has to lie along it. The second pass
+// crosses the globe's face a little left of its middle, which puts the lock
+// a little to the right of the globe, and the globe rolls that short way to
+// become it.
+
+const LEFT_LEG = SHACKLE.x - SHACKLE.radius;
+const RIGHT_LEG = SHACKLE.x + SHACKLE.radius;
+const LEAVE = onPass(PASSES[1], 90);
+/** The middle of the globe, before it rolls. */
+const START = [LEFT_LEG - LEAVE[0], BODY.y, 0];
+/** How far the globe rolls to the right to become the lock. */
+const ROLL = BODY.x - START[0];
+/** The plane sinks back to the logo's own depth as it goes. It only shows as
+ *  the plane getting very slightly smaller. */
+const sink = (gone) => LEAVE[2] * (1 - ramp(0, BODY.y - SHACKLE.y + 40, gone));
+
+const ROUTE = [];
+// Twice round the globe, a point every 3 degrees, starting hidden behind it.
+// Behind the globe, out of sight, one pass turns into the other.
+for (let turn = -51; turn <= 450; turn += 3) {
+  let p;
+  if (turn <= 225) {
+    p = onPass(PASSES[0], turn);
+  } else if (turn >= 315) {
+    p = onPass(PASSES[1], turn - 360);
+  } else {
+    const a = onPass(PASSES[0], turn);
+    const b = onPass(PASSES[1], turn - 360);
+    const f = ramp(225, 315, turn);
+    p = [mix(a[0], b[0], f), mix(a[1], b[1], f), mix(a[2], b[2], f)];
+    p = p.map((v) => (v * ORBIT) / length3(p));
+  }
+  ROUTE.push([START[0] + p[0], START[1] + p[1], p[2]]);
+}
+const SECOND_PASS = (360 + 51) / 3; // index into ROUTE: the second pass begins
+const LEAVES = ROUTE.length - 1; // index: the plane leaves the globe
+// Straight on, up the left leg.
+let foot = 0;
+for (let y = BODY.y - 3; y > SHACKLE.y + 1; y -= 3) {
+  if (!foot && y <= SHACKLE.foot) foot = ROUTE.length;
+  ROUTE.push([LEFT_LEG, y, sink(BODY.y - y)]);
+}
+const JOINS = foot; // index: the plane passes the foot of the shackle
+// Over the top of the shackle.
+for (let step = 0; step <= 16; step++) {
+  const angle = (step / 16) * Math.PI;
+  ROUTE.push([
+    SHACKLE.x - SHACKLE.radius * Math.cos(angle),
+    SHACKLE.y - SHACKLE.radius * Math.sin(angle),
+    sink(BODY.y - SHACKLE.y + angle * SHACKLE.radius),
+  ]);
+}
+const OVER_THE_TOP = ROUTE.length - 9; // index: the top of the shackle
+// Down the right leg and into the lock.
+ROUTE.push(
+  [RIGHT_LEG, SHACKLE.y + LEG * 0.5, 0],
+  [RIGHT_LEG, BODY.y - BODY.halfHeight + 10, 0],
+);
+
+// --------------------------------------------------------------- 5. TIMING
+// Seconds. The plane's flight sets when most things happen; these are the
+// delays and lengths around it. See `createLogoIntro` for how they add up.
+
+const TIMING = {
+  fadeIn: 0.5, // the globe appears
+  planeStart: 0.3, // the plane sets off, still hidden behind the globe
+  twistLead: 0.25, // the view starts to turn this long before the plane leaves the globe
+  rollDelay: 0.15, // the globe starts to roll this long after the plane leaves it
+  roll: 1.2, // rolling across to where the lock will be
+  morphDelay: 0.3, // it starts to change shape this long after it starts to roll
+  morph: 1.0, // globe to lock body
+  bounce: 0.7, // the lock bounces when the plane arrives
+  beat: 0.5, // pause after the plane arrives, before the view pulls back
+  reveal: 1.4, // pull back; the letters appear
+  settle: 0.3, // pause on the dotted logo
+  refine: 2.4, // dots to solid
+  hold: 2.5, // looping only: how long the last frame stays
+  fadeOut: 0.6, // looping only
+  lockLead: 0.45, // start "lock" only: the body is there this long before the plane
+};
+
+export function createLogoIntro({
+  color,
+  centre = [0.5, 0.5],
+  logoWidth = 0.72,
+  start = "globe",
+  upTo = "logo",
+  loop = false,
+}: LogoIntroOptions): LogoIntro {
+  const land = unpackLand();
+
+  // ---- The route as a curve, with tables of distance and time along it ----
+  const way = ROUTE;
+  const count = way.length - 1; // number of spans between waypoints
+  const knotGap = (a, b) => Math.sqrt(length3(sub(a, b)));
+  const blend = (a, b, ta, tb, t) => {
+    const f = (t - ta) / (tb - ta || 1);
+    return [mix(a[0], b[0], f), mix(a[1], b[1], f), mix(a[2], b[2], f)];
+  };
+  /** A waypoint, or a made-up one continuing straight on past either end. */
+  const waypoint = (i) => {
+    if (i < 0) return way[0].map((v, k) => 2 * v - way[1][k]);
+    if (i > count) return way[count].map((v, k) => 2 * v - way[count - 1][k]);
+    return way[i];
+  };
+  // A centripetal Catmull-Rom spline, as on the landing page.
+  const spline = (s) => {
+    const i = Math.min(count - 1, Math.floor(s));
+    const p0 = waypoint(i - 1);
+    const p1 = waypoint(i);
+    const p2 = waypoint(i + 1);
+    const p3 = waypoint(i + 2);
+    const t1 = knotGap(p0, p1);
+    const t2 = t1 + knotGap(p1, p2);
+    const t3 = t2 + knotGap(p2, p3);
+    const t = t1 + (t2 - t1) * (s - i);
+    const a1 = blend(p0, p1, 0, t1, t);
+    const a2 = blend(p1, p2, t1, t2, t);
+    const a3 = blend(p2, p3, t2, t3, t);
+    return blend(blend(a1, a2, 0, t2, t), blend(a2, a3, t1, t3, t), t1, t2, t);
+  };
+  const SAMPLES = 2400;
+  const travelled = new Float32Array(SAMPLES + 1);
+  let previous = spline(0);
+  for (let i = 1; i <= SAMPLES; i++) {
+    const point = spline((i / SAMPLES) * count);
+    travelled[i] = travelled[i - 1] + length3(sub(point, previous));
+    previous = point;
+  }
+  const routeLength = travelled[SAMPLES];
+  /** The first table entry at or before `value`, for a table that only rises. */
+  const find = (table, value) => {
+    let lo = 0;
+    let hi = SAMPLES;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (table[mid] <= value) lo = mid;
+      else hi = mid;
+    }
+    return lo;
+  };
+  /** How far along the route waypoint number `i` is. */
+  const distanceTo = (i) => travelled[Math.round((i / count) * SAMPLES)];
+  /** The point `distance` units along the route. */
+  const at = (distance) => {
+    const d = Math.max(0, Math.min(routeLength, distance));
+    const lo = find(travelled, d);
+    const f = (d - travelled[lo]) / (travelled[lo + 1] - travelled[lo] || 1);
+    return spline(((lo + f) / SAMPLES) * count);
+  };
+
+  // The plane hurries while it is hidden behind the globe, so the wait
+  // between passes is short. Its speed depends only on where it is, so the
+  // time it reaches each point is worked out once, here.
+  const reached = new Float32Array(SAMPLES + 1);
+  for (let i = 1; i <= SAMPLES; i++) {
+    const point = spline(((i - 0.5) / SAMPLES) * count);
+    let hidden = 0;
+    if (point[2] > 0) {
+      const fromMiddle = Math.hypot(point[0] - START[0], point[1] - START[1]);
+      hidden = ramp(0, 1, (0.92 * GLOBE_RADIUS - fromMiddle) / (0.5 * GLOBE_RADIUS));
+    }
+    reached[i] =
+      reached[i - 1] +
+      (travelled[i] - travelled[i - 1]) / (PLANE_SPEED * (1 + (HURRY - 1) * hidden));
+  }
+  /** How far the plane has flown, `time` seconds after it set off. */
+  const flownAt = (time) => {
+    if (time <= 0) return 0;
+    if (time >= reached[SAMPLES]) return routeLength;
+    const lo = find(reached, time);
+    const f = (time - reached[lo]) / (reached[lo + 1] - reached[lo] || 1);
+    return mix(travelled[lo], travelled[lo + 1], f);
+  };
+  /** The time at which the plane is `distance` along the route. */
+  const timeAt = (distance) => {
+    const lo = find(travelled, distance);
+    const f = (distance - travelled[lo]) / (travelled[lo + 1] - travelled[lo] || 1);
+    return TIMING.planeStart + mix(reached[lo], reached[lo + 1], f);
+  };
+
+  // ---- The timeline ----
+  const leaves = distanceTo(LEAVES); // the plane leaves the globe
+  const joins = distanceTo(JOINS); // the plane joins the shackle
+  // The plane "arrives" when its nose meets the top of the lock's body.
+  const arrival = routeLength - 10 - 2.7 * PLANE_SIZE;
+  const T = {};
+  T.spinUp = timeAt(distanceTo(SECOND_PASS)); // the globe starts to speed up
+  T.twist = timeAt(leaves) - TIMING.twistLead; // the view starts to turn
+  T.level = timeAt(distanceTo(OVER_THE_TOP)); // the view is level: plane at the top
+  T.roll = timeAt(leaves) + TIMING.rollDelay;
+  T.morph = T.roll + TIMING.morphDelay;
+  T.arrive = timeAt(arrival);
+  T.icon = T.arrive + TIMING.bounce + 0.3; // the lock is finished and still
+  // Stopping at the icon, the letters never start.
+  T.reveal = upTo === "icon" ? Infinity : T.arrive + TIMING.beat;
+  T.refine = T.reveal + TIMING.reveal + TIMING.settle;
+  T.end = T.refine + TIMING.refine;
+  const finish = upTo === "icon" ? T.icon : T.end;
+  // Starting at the lock, the same timeline is simply joined part way along:
+  // shortly before the plane, flying up the line of the left leg, comes out
+  // of the top of the body.
+  const fromLock = start === "lock";
+  const begin = fromLock
+    ? timeAt(leaves + BODY.halfHeight - 10) - TIMING.lockLead
+    : 0;
+  const cycle = finish - begin + TIMING.hold + TIMING.fadeOut;
+
+  /**
+   * How far the globe has spun by `time`, in radians. It spins steadily, then
+   * faster and faster from T.spinUp until it has become the lock. It never
+   * slows down: by the time it would have to, the map has gone.
+   */
+  const spinAt = (time) => {
+    const rush = clamp01((time - T.spinUp) / (T.morph + TIMING.morph - T.spinUp));
+    return (
+      ((time / SPIN_SECONDS) * 360 + WHIRL * Math.pow(rush, 2.4) - START_LONGITUDE) *
+      RADIANS
+    );
+  };
+
+  // ---- The lock, as arithmetic ----
+  // Each of these gives the distance from a point to the edge of a shape:
+  // negative inside, positive outside. Shapes written this way can be
+  // blended, which is how the globe becomes the body of the lock.
+
+  const bodyEdge = (x, y) => {
+    const qx = Math.abs(x - BODY.x) - (BODY.halfWidth - BODY.corner);
+    const qy = Math.abs(y - BODY.y) - (BODY.halfHeight - BODY.corner);
+    const box =
+      Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) +
+      Math.min(Math.max(qx, qy), 0) -
+      BODY.corner;
+    const notch = Math.min(
+      Math.hypot(x - NOTCH.x, y - NOTCH.y) - NOTCH.radius,
+      Math.max(Math.abs(x - NOTCH.x) - NOTCH.radius, NOTCH.y - y),
+    );
+    return Math.max(box, -notch);
+  };
+  /** The keyhole, grown from nothing (open = 0) to full size (open = 1). */
+  const keyholeEdge = (x, y, open) => {
+    if (open <= 0.01) return 99;
+    const px = KEYHOLE.x + (x - KEYHOLE.x) / open;
+    const py = 63.5 + (y - 63.5) / open;
+    const half = mix(
+      KEYHOLE.neckHalf,
+      KEYHOLE.footHalf,
+      (py - KEYHOLE.neck) / (KEYHOLE.foot - KEYHOLE.neck),
+    );
+    const circle = Math.hypot(px - KEYHOLE.x, py - KEYHOLE.y) - KEYHOLE.radius;
+    const wedge = Math.max(
+      Math.abs(px - KEYHOLE.x) - half,
+      py - KEYHOLE.foot,
+      KEYHOLE.y - py,
+    );
+    return Math.min(circle, wedge) * open;
+  };
+  /** How far along the shackle a point is, from 0 at the foot of the left leg. */
+  const alongShackle = (x, y) => {
+    if (y <= SHACKLE.y) {
+      return LEG + Math.atan2(SHACKLE.y - y, SHACKLE.x - x) * SHACKLE.radius;
+    }
+    return x < SHACKLE.x
+      ? SHACKLE.foot - y
+      : LEG + Math.PI * SHACKLE.radius + (y - SHACKLE.y);
+  };
+  /** Distance from the line down the middle of the shackle. */
+  const offShackle = (x, y) =>
+    y <= SHACKLE.y
+      ? Math.abs(Math.hypot(x - SHACKLE.x, y - SHACKLE.y) - SHACKLE.radius)
+      : Math.abs(Math.abs(x - SHACKLE.x) - SHACKLE.radius);
+
+  // ---- The logo, as outlines, and as a picture to measure the letters from ----
+  let outlines = null; // Path2D objects, made the first time they are needed
+  let letters = null; // how much of any rectangle is covered by a letter
+  let finished = null; // the solid logo, drawn once at the size it ends up
+  const LETTER_GRAIN = 3; // samples per unit
+  const prepare = () => {
+    outlines = {
+      body: new Path2D(ICON_BODY),
+      shackle: new Path2D(ICON_SHACKLE),
+      f: new Path2D(LETTER_F),
+      rest: new Path2D(LETTERS_REST),
+    };
+    // Draw the letters once, small, and add the picture up row by row and
+    // column by column. The total inside any rectangle is then four lookups.
+    const w = Math.ceil((LOGO.x1 - LOGO.x0) * LETTER_GRAIN) + 2;
+    const h = Math.ceil((LOGO.y1 - LOGO.y0) * LETTER_GRAIN) + 2;
+    const sheet = document.createElement("canvas");
+    sheet.width = w;
+    sheet.height = h;
+    const pen = sheet.getContext("2d");
+    pen.setTransform(LETTER_GRAIN, 0, 0, LETTER_GRAIN, -LOGO.x0 * LETTER_GRAIN + 1, -LOGO.y0 * LETTER_GRAIN + 1);
+    pen.fill(outlines.f, "evenodd");
+    pen.fill(outlines.rest, "evenodd");
+    const pixels = pen.getImageData(0, 0, w, h).data;
+    const sums = new Float64Array((w + 1) * (h + 1));
+    for (let y = 0; y < h; y++) {
+      let row = 0;
+      for (let x = 0; x < w; x++) {
+        row += pixels[(y * w + x) * 4 + 3] / 255;
+        sums[(y + 1) * (w + 1) + x + 1] = sums[y * (w + 1) + x + 1] + row;
+      }
+    }
+    letters = { w, h, sums };
+  };
+  /** How much of a square of side `size`, centred on x, y, is letter: 0 to 1. */
+  const letterCover = (x, y, size) => {
+    const { w, h, sums } = letters;
+    const half = Math.max(size * LETTER_GRAIN * 0.5, 0.5);
+    const cx = (x - LOGO.x0) * LETTER_GRAIN + 1;
+    const cy = (y - LOGO.y0) * LETTER_GRAIN + 1;
+    const x0 = Math.max(0, Math.min(w, Math.round(cx - half)));
+    const x1 = Math.max(0, Math.min(w, Math.round(cx + half)));
+    const y0 = Math.max(0, Math.min(h, Math.round(cy - half)));
+    const y1 = Math.max(0, Math.min(h, Math.round(cy + half)));
+    if (x1 <= x0 || y1 <= y0) return 0;
+    const total =
+      sums[y1 * (w + 1) + x1] -
+      sums[y0 * (w + 1) + x1] -
+      sums[y1 * (w + 1) + x0] +
+      sums[y0 * (w + 1) + x0];
+    return total / ((x1 - x0) * (y1 - y0));
+  };
+
+  /** How much of the map is land around a longitude and latitude, 0 to 1. */
+  const landAt = (longitude, latitude) => {
+    let u = (longitude / (Math.PI * 2) + 0.5) % 1;
+    if (u < 0) u += 1;
+    const x = u * LAND_COLS - 0.5;
+    const y = Math.max(
+      0,
+      Math.min(LAND_ROWS - 1, (0.5 - latitude / Math.PI) * LAND_ROWS - 0.5),
+    );
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    const fx = x - x0;
+    const fy = y - y0;
+    const left = (x0 + LAND_COLS) % LAND_COLS;
+    const right = (x0 + 1) % LAND_COLS;
+    const top = y0 * LAND_COLS;
+    const bottom = Math.min(LAND_ROWS - 1, y0 + 1) * LAND_COLS;
+    return (
+      (land[top + left] * (1 - fx) + land[top + right] * fx) * (1 - fy) +
+      (land[bottom + left] * (1 - fx) + land[bottom + right] * fx) * fy
+    );
+  };
+
+  // The grid, reused between frames.
+  let cols = 0;
+  let rows = 0;
+  let depth = new Float32Array(0); // how far away the globe's surface is
+  let under = new Float32Array(0); // brightness of the globe, then the lock's body
+  let ink = new Float32Array(0); // brightness of the shackle, trail and letters
+  let plane = new Float32Array(0); // brightness of the plane
+  let cover = new Uint8Array(0); // 2 on the plane, 1 right beside it
+  let fine = new Float32Array(0); // the plane, on its own finer grid
+  let fineDepth = new Float32Array(0);
+
+  const draw = (ctx, width, height, clock) => {
+    if (!outlines) prepare();
+    // -------------------------------------------------------------- 6. FRAME
+    let time = begin + (loop ? clock % cycle : clock);
+    // Looping: the last frame fades, then everything starts again.
+    const fadeOut = loop ? clamp01((time - finish - TIMING.hold) / TIMING.fadeOut) : 0;
+    time = Math.min(time, finish);
+    const strength = DOT_ALPHA * (1 - fadeOut);
+
+    // Two views. The first is close in on the globe and lock. The second is
+    // the whole logo. `pulled` goes from 0 to 1 as one becomes the other.
+    // The close view has to hold the globe where it starts, a little to the
+    // left, as well as the lock in the middle.
+    const closeUp =
+      HERO * Math.min(height / 96, width / (fromLock ? 96 : 2 * (ROLL + ORBIT + 10)));
+    const wide = Math.min(
+      (logoWidth * width) / (LOGO.x1 - LOGO.x0),
+      (0.6 * height) / (LOGO.y1 - LOGO.y0),
+    );
+    const pulled = ramp(0, 1, (time - T.reveal) / TIMING.reveal);
+    const scale = closeUp * Math.pow(wide / closeUp, pulled); // px per unit
+    const originX = width * centre[0] + (ICON.cx - LOGO.cx) * wide * pulled;
+    const originY = height * centre[1];
+    const viewY = mix(51, LOGO.cy, pulled);
+    /** Logo units to px. The lock's middle stays under originX. */
+    const toX = (x) => originX + (x - ICON.cx) * scale;
+    const toY = (y) => originY + (y - viewY) * scale;
+    // The turn of the view. It turns about the middle of the lock's body,
+    // which is also about where the globe is, so the globe turns but hardly
+    // moves. `twist` is in radians, clockwise, and is 0 once the view is level.
+    const twist = fromLock ? 0 : TWIST * RADIANS * (1 - ramp(T.twist, T.level, time));
+    const cosV = Math.cos(twist);
+    const sinV = Math.sin(twist);
+    /** Logo units to px, with the view's turn. */
+    const onScreen = (x, y) => [
+      toX(BODY.x + (x - BODY.x) * cosV - (y - BODY.y) * sinV),
+      toY(BODY.y + (x - BODY.x) * sinV + (y - BODY.y) * cosV),
+    ];
+
+    // Small logos, and small globes, need smaller dots to be readable.
+    const capHeight = (ICON.y1 - ICON.y0) * wide;
+    const cell = Math.max(
+      3,
+      Math.min(
+        CELL,
+        Math.round(Math.min(capHeight / 16, (GLOBE_RADIUS * closeUp) / 22)),
+      ),
+    );
+    const unitsPerCell = cell / scale;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = color;
+
+    // ---- The end: dots give way to the solid logo ----
+    const refine = (time - T.refine) / TIMING.refine; // 0 to 1 once it starts
+    const solid = ramp(0.62, 1, refine) * (1 - fadeOut);
+    if (refine > 0) {
+      // Every big cell splits into four, then sixteen, each at its own
+      // moment: earlier near the lock, later towards the far end. Each time
+      // the dots get smaller, closer together and stronger.
+      const sizes = [cell, cell / 2, cell / 4];
+      const gaps = [1, 0.065 * cell, 0.025 * cell];
+      const strengths = [DOT_ALPHA, (DOT_ALPHA + 1) / 2, 1];
+      const x0 = Math.max(0, Math.floor(toX(LOGO.x0) / cell) - 1);
+      const x1 = Math.min(Math.ceil(width / cell), Math.ceil(toX(LOGO.x1) / cell) + 1);
+      const y0 = Math.max(0, Math.floor(toY(LOGO.y0) / cell) - 1);
+      const y1 = Math.min(Math.ceil(height / cell), Math.ceil(toY(LOGO.y1) / cell) + 1);
+      if (refine < 0.995) {
+        for (let gy = y0; gy <= y1; gy++) {
+          for (let gx = x0; gx <= x1; gx++) {
+            const across = clamp01((gx * cell - toX(LOGO.x0)) / ((LOGO.x1 - LOGO.x0) * scale));
+            const level =
+              (refine > 0.32 * (0.5 * across + 0.5 * scatter(gx, gy)) ? 1 : 0) +
+              (refine > 0.3 + 0.32 * (0.5 * across + 0.5 * scatter(gy + 31, gx + 17)) ? 1 : 0);
+            const size = sizes[level];
+            const parts = 1 << level;
+            ctx.globalAlpha = strengths[level];
+            for (let sy = 0; sy < parts; sy++) {
+              for (let sx = 0; sx < parts; sx++) {
+                const px = gx * cell + sx * size;
+                const py = gy * cell + sy * size;
+                const x = ICON.cx + (px + size / 2 - originX) / scale;
+                const y = viewY + (py + size / 2 - originY) / scale;
+                const value = logoCover(x, y, size / scale);
+                const lit = level === 0 ? fills(value, gx, gy, 0.05) : value > 0.5;
+                if (lit) ctx.fillRect(px, py, size - gaps[level], size - gaps[level]);
+              }
+            }
+          }
+        }
+      }
+      if (solid > 0) {
+        // The solid logo is drawn once, off screen, at the screen's own
+        // resolution, and then copied in at whatever strength is needed.
+        // Filling the outlines afresh every frame costs far more, and where
+        // the shackle overlaps the body it would show as a seam while fading.
+        const density = ctx.getTransform().a;
+        const left = Math.floor(toX(LOGO.x0) * density) - 1;
+        const top = Math.floor(toY(LOGO.y0) * density) - 1;
+        const key = [scale, density, left, top, color].join();
+        if (!finished || finished.key !== key) {
+          const sheet = document.createElement("canvas");
+          sheet.width = Math.ceil(toX(LOGO.x1) * density) + 1 - left;
+          sheet.height = Math.ceil(toY(LOGO.y1) * density) + 1 - top;
+          const pen = sheet.getContext("2d");
+          pen.setTransform(
+            scale * density,
+            0,
+            0,
+            scale * density,
+            (originX - ICON.cx * scale) * density - left,
+            (originY - viewY * scale) * density - top,
+          );
+          pen.fillStyle = color;
+          pen.fill(outlines.body, "evenodd");
+          pen.fill(outlines.shackle);
+          pen.fill(outlines.f, "evenodd");
+          pen.fill(outlines.rest, "evenodd");
+          finished = { key, sheet };
+        }
+        ctx.globalAlpha = solid;
+        ctx.drawImage(
+          finished.sheet,
+          left / density,
+          top / density,
+          finished.sheet.width / density,
+          finished.sheet.height / density,
+        );
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+
+    // ---- Everything before that: one brightness per cell ----
+    const c = Math.ceil(width / cell);
+    const r = Math.ceil(height / cell);
+    if (c !== cols || r !== rows) {
+      cols = c;
+      rows = r;
+      depth = new Float32Array(c * r);
+      under = new Float32Array(c * r);
+      ink = new Float32Array(c * r);
+      plane = new Float32Array(c * r);
+      cover = new Uint8Array(c * r);
+    }
+    depth.fill(Infinity);
+    under.fill(0);
+    ink.fill(0);
+    plane.fill(0);
+    cover.fill(0);
+
+    // Where everything has got to.
+    const appear = ramp(begin, begin + TIMING.fadeIn, time);
+    const flown = flownAt(time - TIMING.planeStart);
+    const spot = at(flown); // the plane
+    const since = time - T.arrive; // seconds since the plane reached the lock
+    // The globe rolls to the right, turning as a rolling ball does, to where
+    // the lock will be. On the way it stops being a globe.
+    const rolled = fromLock ? 1 : ramp(0, 1, (time - T.roll) / TIMING.roll);
+    const globeX = mix(START[0], BODY.x, rolled);
+    // Its map is turned back by TWIST to begin with, so that at the start,
+    // with the view turned, the globe's tilt looks as it should. Rolling then
+    // turns it clockwise, by as much as a ball rolling that far would turn,
+    // while the view turning undoes the rest.
+    const turned =
+      rolled * (ROLL / GLOBE_RADIUS + TWIST * RADIANS) - TWIST * RADIANS; // clockwise
+    const cosTurn = Math.cos(turned);
+    const sinTurn = Math.sin(turned);
+    // Globe to lock body. Starting at the lock, it is the lock from the outset.
+    const morph = fromLock ? 1 : ramp(0, 1, (time - T.morph) / TIMING.morph);
+    // How much of the shackle has been drawn, as a distance along it. After
+    // the plane arrives the last stretch fills out quickly.
+    const drawnTo =
+      flown < joins ? -1 : alongShackle(spot[0], spot[1]) - 3 + Math.max(0, since) * 250;
+    // The keyhole pops open, a little too far, and settles.
+    const pop = clamp01(since / 0.4) - 1;
+    const open = since < 0 ? 0 : 1 + 2.70158 * pop * pop * pop + 1.70158 * pop * pop;
+    // The bounce: wider and shorter, then taller and thinner, dying away.
+    const wobble =
+      since < 0 || since > TIMING.bounce
+        ? 0
+        : 0.11 * Math.sin(since * 15) * Math.exp(-since * 5.5);
+    const squashX = 1 + wobble;
+    const squashY = 1 - wobble;
+    const spin = spinAt(time);
+    // How far the globe spins during one frame. When that is more than a
+    // cell or so, the map is averaged along it, and the land streaks.
+    const smear = spin - spinAt(time - BLUR);
+    const smears = Math.max(1, Math.min(6, Math.ceil(smear / 0.05)));
+
+    // The globe, then the lock: body, keyhole and shackle.
+    // Which cells to look at: a box round the lock, or, while the view is
+    // turned, a bigger one that holds the lock and the globe at any angle.
+    const pad = 0.14 * (ICON.x1 - ICON.x0) + unitsPerCell;
+    const reach = Math.hypot(BODY.halfWidth, BODY.y - ICON.y0) + pad;
+    const turnedView = twist > 0 || rolled < 1;
+    const minX = Math.max(0, Math.floor(toX(turnedView ? BODY.x - reach : ICON.x0 - pad) / cell));
+    const maxX = Math.min(cols - 1, Math.ceil(toX(turnedView ? BODY.x + reach : ICON.x1 + pad) / cell));
+    const minY = Math.max(0, Math.floor(toY(turnedView ? BODY.y - reach : ICON.y0 - pad) / cell));
+    const maxY = Math.min(rows - 1, Math.ceil(toY(turnedView ? BODY.y + reach : ICON.y1 + pad) / cell));
+    const thin = 0.55 * unitsPerCell; // a one-cell line
+    for (let gy = minY; gy <= maxY; gy++) {
+      for (let gx = minX; gx <= maxX; gx++) {
+        // This cell's place on the lock: first with the view's turn undone,
+        // then the bounce. The lock squashes about the middle of its bottom edge.
+        const qx = ICON.cx + ((gx + 0.5) * cell - originX) / scale - BODY.x;
+        const qy = viewY + ((gy + 0.5) * cell - originY) / scale - BODY.y;
+        const x = ICON.cx + (BODY.x + qx * cosV + qy * sinV - ICON.cx) / squashX;
+        const y = ICON.y1 + (BODY.y - qx * sinV + qy * cosV - ICON.y1) / squashY;
+        const i = gy * cols + gx;
+
+        // Globe and body share an edge that slides from one to the other.
+        const dx = x - globeX;
+        const dy = y - BODY.y;
+        const fromMiddle = Math.hypot(dx, dy);
+        // The body's shape travels with the globe until the globe arrives.
+        const edge = mix(
+          fromMiddle - GLOBE_RADIUS,
+          bodyEdge(x - globeX + BODY.x, y),
+          morph,
+        );
+        let value = clamp01(0.5 - edge / unitsPerCell);
+        if (value > 0) {
+          let surface = 0.12; // off the globe: plain sea
+          let bulge = 0;
+          if (fromMiddle < GLOBE_RADIUS) {
+            bulge = Math.sqrt(1 - (fromMiddle * fromMiddle) / (GLOBE_RADIUS * GLOBE_RADIUS));
+            // The point on the sphere here, y up, z away. The map turns with
+            // the roll; the light stays where it is.
+            const lit = [dx / GLOBE_RADIUS, -dy / GLOBE_RADIUS, -bulge];
+            const out = [
+              (dx * cosTurn + dy * sinTurn) / GLOBE_RADIUS,
+              (dx * sinTurn - dy * cosTurn) / GLOBE_RADIUS,
+              -bulge,
+            ];
+            const latitude = Math.asin(Math.max(-1, Math.min(1, dot(out, NORTH))));
+            const longitude = Math.atan2(dot(out, EAST), dot(out, FRONT)) - spin;
+            // Soften the coast, so it does not flicker as the globe turns.
+            let ground = 0;
+            for (let k = 0; k < smears; k++) {
+              const back = smears > 1 ? (smear * k) / (smears - 1) : 0;
+              ground += ramp(0.3, 0.7, landAt(longitude + back, latitude));
+            }
+            ground /= smears;
+            const sun = Math.max(0, dot(lit, LIGHT));
+            const sea = 0.075 + 0.15 * sun;
+            const shore = 0.4 + 0.5 * sun;
+            // A faint ring of light at the edge, so the dark side keeps its shape.
+            surface = sea + (shore - sea) * ground + ramp(0.72, 1, 1 - bulge) * 0.2;
+          }
+          // The map gives way to a plain fill as the globe becomes the lock.
+          value *= mix(surface, 1, ramp(0.2, 0.95, morph)) * appear;
+          value *= 1 - clamp01(0.5 - keyholeEdge(x, y, open) / unitsPerCell);
+          under[i] = value;
+          // The globe hides what is behind it; the flat lock hides nothing.
+          depth[i] = -bulge * GLOBE_RADIUS * (1 - morph);
+        }
+
+        // The shackle, as far as the plane has drawn it. Just behind the
+        // plane it is a thin line; further back it has swelled to full width.
+        if (drawnTo > 0 && y < SHACKLE.foot + 0.01) {
+          const behind = drawnTo - alongShackle(x, y);
+          if (behind > 0) {
+            const half = Math.max(thin, SHACKLE.halfWidth * ramp(0, 30, behind));
+            ink[i] = clamp01(0.5 - (offShackle(x, y) - half) / unitsPerCell);
+          }
+        }
+      }
+    }
+
+    // The letters. A front sweeps outwards from each side of the lock. Ahead
+    // of it there is nothing; just behind it the letters are faint and still
+    // drifting out from the lock; further back they are solid and in place.
+    if (time > T.reveal) {
+      const swept = ramp(0.08, 1, (time - T.reveal) / TIMING.reveal);
+      const HAZE = 70; // how far behind the front a letter becomes solid
+      const DRIFT = 26; // how far a letter travels as it appears
+      const frontLeft = ICON.x0 - swept * (ICON.x0 - LOGO.x0 + HAZE);
+      const frontRight = ICON.x1 + swept * (LOGO.x1 - ICON.x1 + HAZE);
+      for (let gy = 0; gy < rows; gy++) {
+        const y = viewY + ((gy + 0.5) * cell - originY) / scale;
+        if (y < LOGO.y0 - unitsPerCell || y > LOGO.y1 + unitsPerCell) continue;
+        for (let gx = 0; gx < cols; gx++) {
+          const x = ICON.cx + ((gx + 0.5) * cell - originX) / scale;
+          let value = 0;
+          if (x < ICON.x0) {
+            const arrived = ramp(0, HAZE, x - frontLeft);
+            if (arrived > 0) {
+              value = arrived * letterCover(x - (1 - arrived) * DRIFT, y, unitsPerCell);
+            }
+          } else if (x > ICON.x1) {
+            const arrived = ramp(0, HAZE, frontRight - x);
+            if (arrived > 0) {
+              value = arrived * letterCover(x + (1 - arrived) * DRIFT, y, unitsPerCell);
+            }
+          }
+          if (value > 0) ink[gy * cols + gx] = Math.max(ink[gy * cols + gx], value);
+        }
+      }
+    }
+
+    // The plane and its trail, until it has gone into the lock.
+    if (time > TIMING.planeStart && flown < routeLength) {
+      /** A point in space as [column, row, distance away]. */
+      const project = (p) => {
+        const [px, py] = onScreen(p[0], p[1]);
+        return [px / cell, py / cell, p[2]];
+      };
+      // Trail: the path just behind the plane, fading with age. Once the
+      // plane is on the shackle, the shackle is its trail.
+      let lastDot = null;
+      for (let k = 0; k <= TRAIL_DOTS; k++) {
+        const distance = flown - 2.9 * PLANE_SIZE - k * TRAIL_GAP;
+        const dotAt =
+          !fromLock && distance > 0 && distance < joins ? project(at(distance)) : null;
+        if (dotAt && lastDot) {
+          const older = 0.1 + 0.8 * (1 - k / TRAIL_DOTS);
+          const newer = 0.1 + 0.8 * (1 - (k - 1) / TRAIL_DOTS);
+          const dx = dotAt[0] - lastDot[0];
+          const dy = dotAt[1] - lastDot[1];
+          const steps = Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) * 2) + 1;
+          for (let n = 0; n <= steps; n++) {
+            const f = n / steps;
+            const gx = Math.floor(lastDot[0] + dx * f);
+            const gy = Math.floor(lastDot[1] + dy * f);
+            if (gx < 0 || gy < 0 || gx >= cols || gy >= rows) continue;
+            const i = gy * cols + gx;
+            if (mix(lastDot[2], dotAt[2], f) > depth[i]) continue; // behind the globe
+            ink[i] = Math.max(ink[i], mix(newer, older, f));
+          }
+        }
+        lastDot = dotAt;
+      }
+
+      // The plane's own axes this frame, worked out with y up. Round the
+      // globe its roof points away from the globe, as in the globe animation.
+      // Where it leaves, that is already nearly straight at the viewer; over
+      // the next stretch it becomes exactly so, and from then on we look
+      // straight down on the plane. It rolls into the turn over the shackle.
+      const up = (p) => [p[0], -p[1], p[2]];
+      const heading = (distance, reach) =>
+        unit(sub(up(at(distance + reach)), up(at(distance - reach))));
+      const nose = heading(flown, 0.6);
+      const flat = fromLock ? 1 : ramp(leaves, leaves + 30, flown);
+      const out = unit(sub(up(at(Math.min(flown, leaves))), up(START)));
+      const sky = unit([
+        out[0] * (1 - flat),
+        out[1] * (1 - flat),
+        out[2] * (1 - flat) - flat,
+      ]);
+      const level = unit(cross(sky, nose));
+      const upright = cross(nose, level);
+      let turning = 0;
+      let weights = 0;
+      for (let k = -4; k <= 4 && flat > 0; k++) {
+        const there = flown + k * 1.5;
+        const change = sub(heading(there + 2.5, 0.5), heading(there - 2.5, 0.5));
+        const weight = 5 - Math.abs(k);
+        turning += (weight * dot(change, unit(cross(sky, heading(there, 0.5))))) / 5;
+        weights += weight;
+      }
+      const bank = flat * Math.max(-0.6, Math.min(0.6, (turning / (weights || 1)) * 9));
+      const cosB = Math.cos(bank);
+      const sinB = Math.sin(bank);
+      const roof = [
+        upright[0] * cosB + level[0] * sinB,
+        upright[1] * cosB + level[1] * sinB,
+        upright[2] * cosB + level[2] * sinB,
+      ];
+      const wing = [
+        level[0] * cosB - upright[0] * sinB,
+        level[1] * cosB - upright[1] * sinB,
+        level[2] * cosB - upright[2] * sinB,
+      ];
+      // Nearer the viewer, the plane is a little bigger.
+      const size = fromLock ? PLANE_SIZE : (PLANE_SIZE * EYE) / (EYE + spot[2]);
+      /** A model point moved to where the plane is now, as [column, row, away]. */
+      const place = (m) =>
+        project([
+          spot[0] + (nose[0] * m[0] + roof[0] * m[1] + wing[0] * m[2]) * size,
+          spot[1] - (nose[1] * m[0] + roof[1] * m[1] + wing[1] * m[2]) * size,
+          spot[2] + (nose[2] * m[0] + roof[2] * m[1] + wing[2] * m[2]) * size,
+        ]);
+
+      // The plane is only a dozen or so dots long here. Drawn straight onto
+      // the grid, whole dots would snap on and off along its edges as it
+      // moved, and it would judder. So it is worked out on a grid FINE times
+      // finer, just around the plane, and each dot's brightness is how much
+      // of it the plane covers. Its edges then fade in and out a dot at a time.
+      const faces = TRIANGLES.map((triangle) => triangle.map(place));
+      let x0 = Infinity;
+      let x1 = -Infinity;
+      let y0 = Infinity;
+      let y1 = -Infinity;
+      for (const face of faces) {
+        for (const corner of face) {
+          x0 = Math.min(x0, corner[0]);
+          x1 = Math.max(x1, corner[0]);
+          y0 = Math.min(y0, corner[1]);
+          y1 = Math.max(y1, corner[1]);
+        }
+      }
+      x0 = Math.max(0, Math.floor(x0) - 1);
+      x1 = Math.min(cols - 1, Math.ceil(x1) + 1);
+      y0 = Math.max(0, Math.floor(y0) - 1);
+      y1 = Math.min(rows - 1, Math.ceil(y1) + 1);
+      const fineCols = Math.max(0, x1 - x0 + 1) * FINE;
+      const fineRows = Math.max(0, y1 - y0 + 1) * FINE;
+      if (fine.length < fineCols * fineRows) {
+        fine = new Float32Array(fineCols * fineRows);
+        fineDepth = new Float32Array(fineCols * fineRows);
+      }
+      fine.fill(0, 0, fineCols * fineRows);
+      fineDepth.fill(Infinity, 0, fineCols * fineRows);
+      // Past the top of the shackle, whatever part of the plane has reached
+      // the top of the lock's body has gone inside it. (The view is level by
+      // then, so the top of the body is a row of the grid.)
+      const slot =
+        fromLock || flown > distanceTo(OVER_THE_TOP)
+          ? toY(BODY.y - BODY.halfHeight) / cell
+          : Infinity;
+      /** Set a fine cell, unless something nearer is already there. */
+      const stamp = (fx, fy, z, value, bias = 0) => {
+        if (fx < 0 || fy < 0 || fx >= fineCols || fy >= fineRows) return;
+        const gy = y0 + (fy + 0.5) / FINE;
+        if (gy > slot) return;
+        // The half unit lets the plane lie flat on the lock without sinking in.
+        const behind = depth[Math.floor(gy) * cols + x0 + Math.floor(fx / FINE)];
+        const j = fy * fineCols + fx;
+        if (z - bias >= behind + 0.5 || z - bias >= fineDepth[j]) return;
+        fineDepth[j] = z;
+        fine[j] = value;
+      };
+      /** A grid position as a fine-grid position. */
+      const finer = (p) => [(p[0] - x0) * FINE, (p[1] - y0) * FINE, p[2]];
+
+      for (const face of faces) {
+        // Brightness from how squarely the face is turned to the light. The
+        // grid's rows run downwards, so the face's own "up" is flipped back.
+        const a = face[0];
+        const b = face[1];
+        const d = face[2];
+        let facing = unit(
+          cross(
+            [b[0] - a[0], a[1] - b[1], (b[2] - a[2]) / unitsPerCell],
+            [d[0] - a[0], a[1] - d[1], (d[2] - a[2]) / unitsPerCell],
+          ),
+        );
+        if (facing[2] > 0) facing = [-facing[0], -facing[1], -facing[2]];
+        const shade = 0.56 + 0.44 * Math.max(0, dot(facing, LIGHT));
+
+        const pa = finer(a);
+        const pb = finer(b);
+        const pd = finer(d);
+        const fx0 = Math.max(0, Math.floor(Math.min(pa[0], pb[0], pd[0])));
+        const fx1 = Math.min(fineCols - 1, Math.ceil(Math.max(pa[0], pb[0], pd[0])));
+        const fy0 = Math.max(0, Math.floor(Math.min(pa[1], pb[1], pd[1])));
+        const fy1 = Math.min(fineRows - 1, Math.ceil(Math.max(pa[1], pb[1], pd[1])));
+        const area =
+          (pb[0] - pa[0]) * (pd[1] - pa[1]) - (pb[1] - pa[1]) * (pd[0] - pa[0]);
+        if (Math.abs(area) < 1e-6) continue;
+        // For each fine cell in the triangle's bounding box: is its centre inside?
+        for (let fy = fy0; fy <= fy1; fy++) {
+          for (let fx = fx0; fx <= fx1; fx++) {
+            const px = fx + 0.5;
+            const py = fy + 0.5;
+            const wa =
+              ((pb[0] - px) * (pd[1] - py) - (pb[1] - py) * (pd[0] - px)) / area;
+            const wb =
+              ((pd[0] - px) * (pa[1] - py) - (pd[1] - py) * (pa[0] - px)) / area;
+            const wd = 1 - wa - wb;
+            if (wa < 0 || wb < 0 || wd < 0) continue;
+            stamp(fx, fy, wa * pa[2] + wb * pb[2] + wd * pd[2], shade);
+          }
+        }
+      }
+      // Wings and fin are flat. Seen edge-on they are thinner than one cell
+      // and would vanish, so their outlines are drawn as lines a cell wide.
+      for (const [from, to] of OUTLINES) {
+        const a = finer(place(from));
+        const b = finer(place(to));
+        const dx = b[0] - a[0];
+        const dy = b[1] - a[1];
+        const steps = Math.ceil(Math.max(Math.abs(dx), Math.abs(dy))) + 1;
+        for (let n = 0; n <= steps; n++) {
+          const f = n / steps;
+          const fx = Math.floor(a[0] + dx * f) - 1;
+          const fy = Math.floor(a[1] + dy * f) - 1;
+          for (let oy = 0; oy < FINE; oy++) {
+            for (let ox = 0; ox < FINE; ox++) {
+              stamp(fx + ox, fy + oy, mix(a[2], b[2], f), 1, 0.12 * size);
+            }
+          }
+        }
+      }
+      // Average the fine cells down to dots. A dot more than about two thirds
+      // covered counts as full, so the plane stays solid inside.
+      for (let gy = y0; gy <= y1; gy++) {
+        for (let gx = x0; gx <= x1; gx++) {
+          let total = 0;
+          for (let oy = 0; oy < FINE; oy++) {
+            const row = ((gy - y0) * FINE + oy) * fineCols + (gx - x0) * FINE;
+            for (let ox = 0; ox < FINE; ox++) total += fine[row + ox];
+          }
+          const value = Math.min(1, (total / (FINE * FINE)) * 1.5);
+          if (value > 0.06) {
+            plane[gy * cols + gx] = value;
+            cover[gy * cols + gx] = 2;
+          }
+        }
+      }
+      // Mark the cells touching the plane. They are left empty, which gives
+      // the plane a dark edge and keeps it readable against the globe. Once
+      // it is on the shackle it has no edge, so that it can merge into it.
+      for (let gy = y0; gy <= y1 && flown < joins && !fromLock; gy++) {
+        for (let gx = x0; gx <= x1; gx++) {
+          if (cover[gy * cols + gx] !== 2) continue;
+          for (let ny = gy - 1; ny <= gy + 1; ny++) {
+            for (let nx = gx - 1; nx <= gx + 1; nx++) {
+              if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+              if (!cover[ny * cols + nx]) cover[ny * cols + nx] = 1;
+            }
+          }
+        }
+      }
+    }
+
+    // --------------------------------------------------------------- 7. DOTS
+    // The plane, the shackle, the trail and the letters, at full dot strength.
+    ctx.globalAlpha = strength;
+    for (let gy = 0; gy < rows; gy++) {
+      for (let gx = 0; gx < cols; gx++) {
+        const i = gy * cols + gx;
+        const value =
+          cover[i] === 2 ? Math.max(plane[i], ink[i]) : cover[i] ? 0 : ink[i];
+        if (value > 0 && fills(value, gx, gy, 0.08)) {
+          ctx.fillRect(gx * cell, gy * cell, cell - 1, cell - 1);
+          if (!cover[i]) cover[i] = 1;
+        }
+      }
+    }
+    // The globe, dimmer; it comes up to full strength as it becomes the lock.
+    ctx.globalAlpha = strength * mix(GLOBE_ALPHA, 1, ramp(0.3, 1, morph));
+    for (let gy = minY; gy <= maxY; gy++) {
+      for (let gx = minX; gx <= maxX; gx++) {
+        const i = gy * cols + gx;
+        if (cover[i] || under[i] <= 0) continue;
+        if (fills(under[i], gx, gy, 0.04)) {
+          ctx.fillRect(gx * cell, gy * cell, cell - 1, cell - 1);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  /** How much of a square of side `size` is logo: the finished lock, or a letter. */
+  const logoCover = (x, y, size) => {
+    if (x < ICON.x0 - size || x > ICON.x1 + size) return letterCover(x, y, size);
+    const shackle =
+      y < SHACKLE.foot ? offShackle(x, y) - SHACKLE.halfWidth : y - SHACKLE.foot;
+    const lock = Math.min(Math.max(bodyEdge(x, y), -keyholeEdge(x, y, 1)), shackle);
+    return clamp01(0.5 - lock / size);
+  };
+
+  // The number the runner keeps for this animation is the time in seconds.
+  const advance = (time, dt) => time + dt;
+
+  return {
+    draw,
+    advance,
+    // The still frame, as a time: the last frame.
+    poseDistance: finish - begin,
+    // When the animation is over. Looping, it never is.
+    duration: loop ? Infinity : finish - begin,
+  };
+}
