@@ -21,9 +21,6 @@ export default function FlightDetailsCard({ fare }: { fare: FareDetail }) {
         <DetailRow label="Duration">
           {formatDuration(fare.durationMinutes)}
         </DetailRow>
-        <DetailRow label="Aircraft">{fare.aircraft}</DetailRow>
-        <DetailRow label="Bags">{fare.baggage}</DetailRow>
-        <DetailRow label="Changes and refunds">{fare.fareRules}</DetailRow>
       </DetailList>
     </Card>
   );

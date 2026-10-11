@@ -31,11 +31,11 @@ export default function FeeDriversCard({
         </DetailRow>
       </DetailList>
       <p className="border-t border-foreground/10 pt-4 text-[13px] leading-normal text-muted">
-        A lock is priced like an option: the more a fare tends to move, and the
-        longer there is until the flight, the more the lock is worth.
+        A FareLock is priced like an option: the more a fare tends to move, and
+        the longer there is until the flight, the more the lock is worth.
       </p>
       <PillLink href="/#pricing" size="sm" className="mt-3 self-start">
-        How we price a lock
+        How we price a FareLock
       </PillLink>
     </Card>
   );
