@@ -14,8 +14,8 @@ export default function Intro() {
       </h1>
       <p className="mb-12 max-w-[600px] text-2xl font-light text-soft">
         For a small fee, buy a FareLock on today&apos;s fare after you book. If
-        the price drops, you cash out the difference. If it rises, you already
-        have your ticket.
+        the price drops, you cash out the difference. If it rises, you can rest
+        assured knowing you already got the best price.
       </p>
       <PillLink href="#how-it-works" size="sm" className="bg-background/70">
         How a FareLock works

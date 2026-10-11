@@ -4,7 +4,10 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import Container from "@/components/Container";
 import Label from "@/components/Label";
-import LockFilter, { matchesFilter, parseLockFilter } from "@/components/locks/LockFilter";
+import LockFilter, {
+  matchesFilter,
+  parseLockFilter,
+} from "@/components/locks/LockFilter";
 import LockRow from "@/components/locks/LockRow";
 import LockSummary from "@/components/locks/LockSummary";
 import PillLink from "@/components/PillLink";
@@ -12,7 +15,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getLocks } from "@/lib/locks";
 
 export const metadata: Metadata = {
-  title: "My locks | FareLocker",
+  title: "My FareLocks | FareLocker",
 };
 
 type SearchParams = PageProps<"/locks">["searchParams"];
@@ -32,7 +35,7 @@ export default function LocksPage({ searchParams }: PageProps<"/locks">) {
         <header className="flex flex-col gap-3">
           <Label>Your account</Label>
           <h1 className="text-[clamp(2.25rem,4.5vw,3.75rem)] leading-none tracking-[-0.03em]">
-            My locks
+            My FareLocks
           </h1>
         </header>
         <Suspense fallback={<LocksSkeleton />}>
@@ -54,10 +57,13 @@ async function LocksView({ searchParams }: { searchParams: SearchParams }) {
   } catch (error) {
     console.error("Lock list failed:", error);
     return (
-      <div role="alert" className="flex flex-col items-start gap-4 border-t border-foreground/10 pt-6">
+      <div
+        role="alert"
+        className="flex flex-col items-start gap-4 border-t border-foreground/10 pt-6"
+      >
         <p className="max-w-[46ch] text-soft">
-          We couldn&rsquo;t load your FareLocks right now. Your purchases are safe;
-          try this page again in a moment.
+          We couldn&rsquo;t load your FareLocks right now. Your purchases are
+          safe; try this page again in a moment.
         </p>
         <PillLink href="/locks" size="sm">
           Try again
@@ -110,7 +116,10 @@ const block = "bg-foreground/[0.06]";
 /** Grey stand-ins in the same layout, so the page doesn't jump on load. */
 function LocksSkeleton() {
   return (
-    <div aria-hidden className="flex animate-pulse flex-col gap-6 motion-reduce:animate-none">
+    <div
+      aria-hidden
+      className="flex animate-pulse flex-col gap-6 motion-reduce:animate-none"
+    >
       <div className="grid gap-5 sm:grid-cols-3">
         <div className={`${block} h-[120px] rounded-3xl`} />
         <div className={`${block} h-[120px] rounded-3xl`} />

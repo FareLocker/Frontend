@@ -10,7 +10,7 @@ const questions = [
   },
   {
     question: "What if the fare drops instead?",
-    answer: `You exercise the FareLock and we pay the drop, up to ${TBD.coverLimit}. Your only other cost is the FareLock fee.`,
+    answer: `You exercise the FareLock and we pay the drop, up to 50% of the fare. Your only other cost is the FareLock fee.`,
   },
   {
     question: "What if I never exercise?",

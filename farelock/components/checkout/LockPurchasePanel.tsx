@@ -32,18 +32,28 @@ export default function LockPurchasePanel({
       </div>
 
       {state?.error ? (
-        <p role="alert" className="text-[13px] leading-normal font-semibold text-accent">
+        <p
+          role="alert"
+          className="text-[13px] leading-normal font-semibold text-accent"
+        >
           {state.error}
         </p>
       ) : null}
 
       {short > 0 ? (
         <div className="flex flex-col gap-3">
-          <p role="status" className="text-[13px] leading-normal font-semibold text-accent">
-            Your wallet is {formatMoney({ amount: short, currency: fee.currency })} short
-            of this lock.
+          <p
+            role="status"
+            className="text-[13px] leading-normal font-semibold text-accent"
+          >
+            Your wallet is{" "}
+            {formatMoney({ amount: short, currency: fee.currency })} short of
+            this lock.
           </p>
-          <Link href="/wallet/checkout" className={`${solidButtonClass} w-full`}>
+          <Link
+            href="/wallet/checkout"
+            className={`${solidButtonClass} w-full`}
+          >
             Add funds
           </Link>
         </div>
@@ -60,7 +70,10 @@ export default function LockPurchasePanel({
             />
             <span>
               I have read the{" "}
-              <Link href="/lock-terms" className="text-foreground underline underline-offset-2">
+              <Link
+                href="/lock-terms"
+                className="text-foreground underline underline-offset-2"
+              >
                 lock terms
               </Link>
             </span>

@@ -18,8 +18,8 @@ export default async function HeaderNav() {
     <nav aria-label="Main" className={navClass}>
       {user ? (
         <>
-          <PillLink href="/locks">My locks</PillLink>
-          <PillLink href="/wallet">Add funds</PillLink>
+          <PillLink href="/locks">My FareLocks</PillLink>
+          <PillLink href="/wallet">Wallet</PillLink>
           <UserButton />
         </>
       ) : (
