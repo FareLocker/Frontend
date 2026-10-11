@@ -24,6 +24,7 @@ import type { FareDetail } from "@/types/fare";
 import type { Lock } from "@/types/lock";
 
 type Params = PageProps<"/fares/[id]">["params"];
+type SearchParams = PageProps<"/fares/[id]">["searchParams"];
 
 export async function generateMetadata({
   params,
@@ -50,20 +51,32 @@ export async function generateMetadata({
  *   an ended lock  a record of how it went (LockOutcomeCard). Nothing on
  *                  this view buys or exercises anything.
  */
-export default function FarePage({ params }: PageProps<"/fares/[id]">) {
+export default function FarePage({ params, searchParams }: PageProps<"/fares/[id]">) {
   return (
     <main className="flex-1">
       <Container className="flex flex-col gap-5 pt-6 pb-20">
         <Suspense fallback={<FareTradeSkeleton />}>
-          <FareTrade params={params} />
+          <FareTrade params={params} searchParams={searchParams} />
         </Suspense>
       </Container>
     </main>
   );
 }
 
-async function FareTrade({ params }: { params: Params }) {
+async function FareTrade({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
   const { id } = await params;
+  // From the team's search-bug fix: search cards link here with ?q=<query>,
+  // so "Back to search" returns to the same results. Read inside <Suspense>,
+  // since search params are only known per request.
+  const { q } = await searchParams;
+  const query = (Array.isArray(q) ? q[0] : q)?.trim() ?? "";
+  const backToSearch = query ? `/search?q=${encodeURIComponent(query)}` : "/search";
   // The fare, and the member's lock on it if they have one. Asked for
   // together, so one request does not wait on the other.
   const [fare, lock] = await Promise.all([getFare(id), getLockForFare(id)]);
@@ -76,9 +89,8 @@ async function FareTrade({ params }: { params: Params }) {
 
   return (
     <>
-      {/* LATER: go back to the search the visitor came from (/search?q=…). */}
       <Link
-        href={ended ? "/locks" : "/search"}
+        href={ended ? "/locks" : backToSearch}
         className="inline-flex min-h-11 items-center self-start rounded-full bg-foreground/10 px-4 text-xs font-medium transition-colors duration-200 hover:bg-foreground/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
       >
         {ended ? "Back to my locks" : "Back to search"}

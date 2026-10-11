@@ -78,8 +78,9 @@ export default function RegisterPage() {
                   label="Phone"
                   name="phone_number"
                   type="tel"
+                  inputMode="tel"
                   autoComplete="tel"
-                  placeholder="+1 555 0100"
+                  placeholder="(555) 123-4567"
                   maxLength={20}
                   optional
                   hint="You can log in with it instead of your email."

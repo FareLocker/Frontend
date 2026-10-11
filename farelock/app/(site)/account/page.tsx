@@ -9,6 +9,7 @@ import LabelValue from "@/components/LabelValue";
 import PillLink, { pillClass } from "@/components/PillLink";
 import TicketDemo from "@/components/TicketDemo";
 import ActivityCard from "@/components/account/ActivityCard";
+import WithdrawButton from "@/components/account/WithdrawButton";
 import { logOut } from "@/app/login/actions";
 import LockList from "@/components/account/LockList";
 import { cardHeadingClass } from "@/components/trade/FlightDetailsCard";
@@ -72,6 +73,7 @@ async function AccountView({ searchParams }: { searchParams: SearchParams }) {
           <PillLink href="/wallet/checkout" size="sm">
             Add funds
           </PillLink>
+          <WithdrawButton balance={balance} />
           <PillLink href="/search">Find a fare</PillLink>
           <form action={logOut}>
             <button type="submit" className={`${pillClass.sm} cursor-pointer`}>
