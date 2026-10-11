@@ -15,10 +15,10 @@ export default function PricingStory() {
     <SplitSection id="pricing" label="How the fee is set" ruleAbove={false}>
       <div className="flex flex-col items-start gap-10">
         <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] leading-[1.2] tracking-[-0.02em]">
-          Priced like an option, <Dim>because it is one.</Dim> A lock is the
-          right to buy a ticket at a <Dim>set price</Dim> before a{" "}
-          <Dim>deadline</Dim>. That is an option, so we price it with an option
-          model instead of a <Dim>flat markup</Dim>.
+          Priced like an option, <Dim>because it is one.</Dim> A FareLock is
+          protection on a fare you already paid, with a <Dim>set strike</Dim>{" "}
+          and a <Dim>deadline</Dim> at departure. That is an option, so we price
+          it with an option model instead of a <Dim>flat markup</Dim>.
         </h2>
 
         {/* TODO: replace with the fare price tree diagram. */}

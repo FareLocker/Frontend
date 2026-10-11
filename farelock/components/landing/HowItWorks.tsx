@@ -3,16 +3,16 @@ import Label from "@/components/Label";
 
 const steps = [
   {
-    title: "Search a flight",
-    body: "See live fares for your route and dates.",
+    title: "Book your flight",
+    body: "Buy the ticket as you normally would for your route and dates.",
   },
   {
-    title: "Lock the fare",
-    body: "Pay a one-time fee to hold today's price until the flight departs.",
+    title: "Buy a FareLock",
+    body: "Pay a one-time fee to protect today’s price until departure.",
   },
   {
-    title: "Book when you're ready",
-    body: "Pay the locked fare or the current fare, whichever is lower.",
+    title: "Exercise when it pays",
+    body: "Cash out your FareLock anytime before the flight, or let it settle automatically at departure.",
   },
 ];
 

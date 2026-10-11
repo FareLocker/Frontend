@@ -13,11 +13,12 @@ export default function Intro() {
         overpay
       </h1>
       <p className="mb-12 max-w-[600px] text-2xl font-light text-soft">
-        Lock today&apos;s fare for a small fee. If the price goes up, you still
-        pay the locked price. If it goes down, you pay less.
+        For a small fee, buy a FareLock on today&apos;s fare after you book. If
+        the price drops, you cash out the difference. If it rises, you already
+        have your ticket.
       </p>
       <PillLink href="#how-it-works" size="sm" className="bg-background/70">
-        How a lock works
+        How a FareLock works
         <CirclePlusIcon />
       </PillLink>
     </div>

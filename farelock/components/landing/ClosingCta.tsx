@@ -10,10 +10,10 @@ export default function ClosingCta() {
         <h2 className="text-[clamp(2.75rem,7vw,6.5rem)] leading-[0.95] tracking-[-0.02em]">
           Find a fare
           <br />
-          worth locking.
+          worth a FareLock.
         </h2>
         <p className="max-w-[600px] text-2xl font-light text-soft">
-          Searching is free. You only pay if you lock.
+          Searching is free. You only pay if you buy a FareLock.
         </p>
         <FocusSearchButton>Search fares</FocusSearchButton>
       </Container>

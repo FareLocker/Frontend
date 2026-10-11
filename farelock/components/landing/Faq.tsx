@@ -4,21 +4,23 @@ import SplitSection from "./SplitSection";
 
 const questions = [
   {
-    question: "What happens if the fare goes up after I lock?",
-    answer: `You book at your locked fare. We cover the difference, up to ${TBD.coverLimit}.`,
+    question: "What happens if the fare goes up after I buy a FareLock?",
+    answer:
+      "The FareLock pays nothing. You already have your ticket, so a rising fare does not hurt you.",
   },
   {
     question: "What if the fare drops instead?",
-    answer: "You book at the new, lower fare. Your only cost is the lock fee.",
+    answer: `You exercise the FareLock and we pay the drop, up to ${TBD.coverLimit}. Your only other cost is the FareLock fee.`,
   },
   {
-    question: "Do I get the fee back if I never book?",
-    answer: TBD.refundTerms,
-  },
-  {
-    question: "How is the lock fee worked out?",
+    question: "What if I never exercise?",
     answer:
-      "A lock is priced like an option. The fee depends on how much the fare tends to move and how long is left until the flight.",
+      "At departure we settle the FareLock for you — same payout rules, no action needed.",
+  },
+  {
+    question: "How is the FareLock fee worked out?",
+    answer:
+      "A FareLock is priced like an option. The fee depends on how much the fare tends to move and how long is left until the flight.",
   },
 ];
 

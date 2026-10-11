@@ -14,7 +14,7 @@ const columns = [
     links: [
       { label: "Terms", href: "/terms" },
       { label: "Privacy", href: "/privacy" },
-      { label: "Lock terms", href: "/lock-terms" },
+      { label: "FareLock terms", href: "/lock-terms" },
     ],
   },
 ];
@@ -27,7 +27,7 @@ export default function Footer() {
           <div className="flex flex-col gap-4 md:col-span-6">
             <p className="text-lg tracking-[-0.02em]">FareLocker</p>
             <p className="max-w-[300px] text-muted">
-              Lock today&apos;s fare. Book when you&apos;re ready.
+              Buy a FareLock after you book. Cash out if the fare drops.
             </p>
           </div>
 

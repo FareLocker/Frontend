@@ -4,9 +4,9 @@ import Label from "@/components/Label";
 import PillLink from "@/components/PillLink";
 
 /*
- * An illustrative fare path, not real data: the fare climbs away from the
- * price it was locked at. Replace FARE_PATH with a real series once fare
- * history is stored. Coordinates are in a 1000 x 400 box, y down.
+ * An illustrative fare path, not real data: the market fare climbs away from
+ * the FareLock strike. Replace FARE_PATH with a real series once fare history
+ * is stored. Coordinates are in a 1000 x 400 box, y down.
  */
 const LOCKED_Y = 260;
 const FARE_PATH =
@@ -19,7 +19,7 @@ export default function FareChart() {
     <section className="relative flex h-[80svh] max-h-[720px] min-h-[480px] items-center justify-center overflow-hidden border-y border-line bg-pitch">
       <svg
         role="img"
-        aria-label="Illustration: a fare rising over time above the flat price it was locked at"
+        aria-label="Illustration: a fare rising over time above a flat FareLock strike"
         viewBox="0 0 1000 400"
         preserveAspectRatio="none"
         className="absolute inset-0 h-full w-full"
@@ -51,11 +51,11 @@ export default function FareChart() {
       <ul className="absolute top-8 left-5 flex flex-wrap gap-x-6 gap-y-2 text-[0.7rem] uppercase tracking-[0.05em] sm:left-8">
         <li className="flex items-center gap-2">
           <span aria-hidden className="h-0.5 w-6 bg-foreground" />
-          Fare after you lock
+          Fare after your FareLock
         </li>
         <li className="flex items-center gap-2">
           <span aria-hidden className="w-6 border-t-2 border-dashed border-muted" />
-          Your locked fare
+          Your FareLock fare
         </li>
       </ul>
 

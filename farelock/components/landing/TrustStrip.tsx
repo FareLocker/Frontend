@@ -13,7 +13,7 @@ const points = [
   },
   {
     label: "Clear terms",
-    body: "Every lock shows its fee, length and limit before you pay.",
+    body: "Every FareLock shows its fee, length and limit before you pay.",
   },
 ];
 

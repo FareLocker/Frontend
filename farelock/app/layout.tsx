@@ -6,7 +6,7 @@ import { SearchNavigationProvider } from "@/components/search/SearchNavigation";
 const siteName = "FareLocker";
 const title = "FareLocker: never overpay for a flight";
 const description =
-  "Lock today's fare for a small fee. If the price goes up, you still pay the locked price. If it goes down, you pay less.";
+  "For a small fee, lock in today’s fare — and if it gets cheaper, keep the savings.";
 
 /**
  * Host for absolute og/twitter URLs. Baked in at `next build`.
