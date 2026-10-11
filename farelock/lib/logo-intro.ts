@@ -1,4 +1,4 @@
-// @ts-nocheck — ported from farelocker-logo-animation-short.html; public API is typed below.
+// @ts-nocheck — large canvas animation; public API is typed below.
 import { isLit, shimmer } from "./dither";
 import { OUTLINES, TRIANGLES } from "./plane-model";
 import { cross, dot, length3, LIGHT, sub, unit, type Vec3 } from "./vec3";
@@ -6,10 +6,9 @@ import { cross, dot, length3, LIGHT, sub, unit, type Vec3 } from "./vec3";
 /*
  * FareLocker logo intro animation.
  *
- * Extracted from farelocker-logo-animation-short.html. Shapes, timeline and
- * drawing live here; the canvas runner is components/LogoIntro.tsx via
- * useDitherCanvas. Dot decisions come from dither.ts; the plane mesh from
- * plane-model.ts.
+ * Shapes, timeline and drawing live here; the canvas runner is
+ * components/LogoIntro.tsx via useDitherCanvas. Dot decisions come from
+ * dither.ts; the plane mesh from plane-model.ts.
  */
 
 export type LogoIntroOptions = {

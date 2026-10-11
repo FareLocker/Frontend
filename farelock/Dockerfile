@@ -2,11 +2,15 @@ FROM oven/bun:1 AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
+
 FROM deps AS build
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-
+# Baked into og/twitter absolute image URLs at build time.
+ARG NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN bun run build
+
 FROM oven/bun:1-slim AS runner
 WORKDIR /app
 
