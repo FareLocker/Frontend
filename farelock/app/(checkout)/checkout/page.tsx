@@ -10,11 +10,13 @@ import Label from "@/components/Label";
 import PillLink from "@/components/PillLink";
 import { cardHeadingClass } from "@/components/trade/FlightDetailsCard";
 import { getCurrentUser } from "@/lib/auth";
+import { quoteLockAtStrike } from "@/app/(site)/fares/actions";
 import { getFare } from "@/lib/fares";
 import { formatDate, formatMoney, formatStops, formatTime } from "@/lib/format";
 import { getLockForFare, maxGain } from "@/lib/locks";
 import { TBD } from "@/lib/placeholders";
 import { getBalanceOrNull } from "@/lib/wallet";
+import type { Money } from "@/types/fare";
 
 export const metadata: Metadata = {
   title: "Review your lock | FareLocker",
@@ -49,8 +51,9 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { fare: fareParam } = await searchParams;
+  const { fare: fareParam, strike: strikeParam } = await searchParams;
   const fareId = (Array.isArray(fareParam) ? fareParam[0] : fareParam) ?? "";
+  const strikeRaw = Array.isArray(strikeParam) ? strikeParam[0] : strikeParam;
   const [fare, held, balance] = await Promise.all([
     getFare(fareId),
     getLockForFare(fareId),
@@ -59,12 +62,34 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
   if (!fare) notFound();
   // Nothing to buy: no lock is for sale, or they already hold one. The fare's
   // page explains either case.
-  const quote = fare.lock;
-  if (!quote || held?.status === "open") redirect(`/fares/${fare.id}`);
+  if (!fare.lock || held?.status === "open") redirect(`/fares/${fare.id}`);
+
+  const requestedStrike = strikeRaw ? Number(strikeRaw) : NaN;
+  const customStrike =
+    Number.isInteger(requestedStrike) &&
+    requestedStrike > 0 &&
+    requestedStrike !== fare.fare.amount
+      ? requestedStrike
+      : null;
+
+  let lockedFare: Money = fare.fare;
+  let total: Money = fare.lock.fee;
+  if (customStrike !== null) {
+    const quoted = await quoteLockAtStrike({
+      origin: fare.depart.airportCode,
+      destination: fare.arrive.airportCode,
+      departureDate: fare.depart.localTime.slice(0, 10),
+      flightNumber: fare.flightNumber,
+      fareCents: fare.fare.amount,
+      strikeCents: customStrike,
+    });
+    if ("error" in quoted) redirect(`/fares/${fare.id}`);
+    lockedFare = { amount: customStrike, currency: fare.fare.currency };
+    total = { amount: quoted.feeCents, currency: fare.fare.currency };
+  }
 
   // LATER (taxes): TBD.lockTaxes is shown but not added, so the total is the
   // fee alone until someone decides whether a lock fee carries any.
-  const total = quote.fee;
   const departs = `${formatDate(fare.depart.localTime)}, ${formatTime(fare.depart.localTime)}`;
 
   return (
@@ -98,13 +123,13 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
           <Card>
             <h2 className={cardHeadingClass}>Your lock</h2>
             <DetailList>
-              <DetailRow label="Locked fare">{formatMoney(fare.fare)}</DetailRow>
+              <DetailRow label="Locked fare">{formatMoney(lockedFare)}</DetailRow>
               <DetailRow label="Lock lasts">
                 Until departure
                 <span className="block font-normal text-muted">{departs}</span>
               </DetailRow>
               <DetailRow label="Most you can gain">
-                {formatMoney(maxGain(fare.fare))}
+                {formatMoney(maxGain(lockedFare))}
                 <span className="block font-normal text-muted">Half the locked fare</span>
               </DetailRow>
             </DetailList>
@@ -133,14 +158,19 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
           <Card className="flex flex-col gap-5">
             <h2 className="text-2xl tracking-[-0.03em]">Due today</h2>
             <DetailList>
-              <DetailRow label="Lock fee">{formatMoney(quote.fee)}</DetailRow>
+              <DetailRow label="Lock fee">{formatMoney(total)}</DetailRow>
               <DetailRow label="Taxes and charges">{TBD.lockTaxes}</DetailRow>
               <DetailRow label="Paid from your wallet">
                 {balance ? `${formatMoney(balance)} available` : "Couldn't load your balance"}
               </DetailRow>
             </DetailList>
 
-            <LockPurchasePanel fareId={fare.id} initialFee={total} balance={balance} />
+            <LockPurchasePanel
+              fareId={fare.id}
+              initialFee={total}
+              balance={balance}
+              strikeCents={customStrike ?? undefined}
+            />
 
             <p className="rounded-2xl bg-raised px-[18px] py-3.5 text-[13px] leading-normal text-soft">
               You are buying a lock on this fare, not the flight. FareLocker

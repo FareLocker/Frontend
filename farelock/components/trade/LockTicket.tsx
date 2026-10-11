@@ -1,21 +1,28 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useId, useState } from "react";
+import { quoteLockAtStrike } from "@/app/(site)/fares/actions";
 import Card from "@/components/Card";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import PillLink, { solidButtonClass } from "@/components/PillLink";
 import { formatDate, formatMoney, formatTime } from "@/lib/format";
-import { maxGain } from "@/lib/locks";
-import type { FareDetail } from "@/types/fare";
+import type { FareDetail, Money } from "@/types/fare";
+
+/** Wait this long after the last keystroke before re-pricing. */
+const QUOTE_DEBOUNCE_MS = 350;
 
 /**
  * The order ticket: what locking this fare gets you, what it costs, and the
  * button to buy the lock. Shown to a visitor who does not hold a lock on
  * this fare yet; once they do, HeldLockCard takes its place.
  *
+ * The locked fare starts at today's fare and can be edited. Editing
+ * re-prices the fee (debounced) via the option model.
+ *
  * A lock has no length to choose. It runs until the flight departs.
  * FareLocker sells the lock only, never the flight, so there is no
  * "book" button here.
- *
- * LATER (checkout): the button links to /checkout, which does not exist yet.
  */
 export default function LockTicket({ fare }: { fare: FareDetail }) {
   if (!fare.lock) {
@@ -33,12 +40,110 @@ export default function LockTicket({ fare }: { fare: FareDetail }) {
     );
   }
 
+  return <LockTicketForm fare={fare} initialFee={fare.lock.fee} />;
+}
+
+function LockTicketForm({
+  fare,
+  initialFee,
+}: {
+  fare: FareDetail;
+  initialFee: Money;
+}) {
+  const inputId = useId();
+  const currency = fare.fare.currency;
+  const [draft, setDraft] = useState(centsToDraft(fare.fare.amount));
+  const [strikeCents, setStrikeCents] = useState(fare.fare.amount);
+  const [fee, setFee] = useState(initialFee);
+  const [quoting, setQuoting] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const parsed = parseDraftCents(draft);
+    if (parsed === null) {
+      setQuoteError(null);
+      setQuoting(false);
+      return;
+    }
+    if (parsed === strikeCents) {
+      setQuoteError(null);
+      setQuoting(false);
+      return;
+    }
+
+    let cancelled = false;
+    setQuoting(true);
+    setQuoteError(null);
+    const handle = window.setTimeout(async () => {
+      const result = await quoteLockAtStrike({
+        origin: fare.depart.airportCode,
+        destination: fare.arrive.airportCode,
+        departureDate: fare.depart.localTime.slice(0, 10),
+        flightNumber: fare.flightNumber,
+        fareCents: fare.fare.amount,
+        strikeCents: parsed,
+      });
+      if (cancelled) return;
+      if ("error" in result) {
+        setQuoteError(result.error);
+        setQuoting(false);
+        return;
+      }
+      setStrikeCents(parsed);
+      setFee({ amount: result.feeCents, currency });
+      setQuoteError(null);
+      setQuoting(false);
+    }, QUOTE_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [
+    draft,
+    strikeCents,
+    currency,
+    fare.depart.airportCode,
+    fare.arrive.airportCode,
+    fare.depart.localTime,
+    fare.flightNumber,
+    fare.fare.amount,
+  ]);
+
+  const lockedFare: Money = { amount: strikeCents, currency };
+  const checkoutHref =
+    strikeCents === fare.fare.amount
+      ? `/checkout?fare=${fare.id}`
+      : `/checkout?fare=${fare.id}&strike=${strikeCents}`;
+
   return (
     <Card className="flex flex-col gap-5">
       <h2 className="text-2xl tracking-[-0.03em]">Lock this fare</h2>
 
       <DetailList>
-        <DetailRow label="Locked fare">{formatMoney(fare.fare)}</DetailRow>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-foreground/10 py-[13px]">
+          <label
+            htmlFor={inputId}
+            className="text-[11px] uppercase tracking-[0.1em] text-muted"
+          >
+            Locked fare
+          </label>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-semibold text-muted" aria-hidden>
+              $
+            </span>
+            <input
+              id={inputId}
+              inputMode="decimal"
+              autoComplete="off"
+              spellCheck={false}
+              value={draft}
+              onChange={(event) => setDraft(sanitizeDraft(event.target.value))}
+              aria-invalid={quoteError ? true : undefined}
+              className="h-9 w-[7.5rem] rounded-xl border border-foreground/15 bg-pitch px-3 text-right text-[13px] font-semibold tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+            />
+          </div>
+        </div>
         <DetailRow label="Lock lasts">
           Until departure
           <span className="block font-normal text-muted">
@@ -47,7 +152,10 @@ export default function LockTicket({ fare }: { fare: FareDetail }) {
           </span>
         </DetailRow>
         <DetailRow label="Most you can gain">
-          {formatMoney(maxGain(fare.fare))}
+          {formatMoney({
+            amount: Math.floor(lockedFare.amount / 2),
+            currency: lockedFare.currency,
+          })}
           <span className="block font-normal text-muted">Half the locked fare</span>
         </DetailRow>
       </DetailList>
@@ -56,12 +164,30 @@ export default function LockTicket({ fare }: { fare: FareDetail }) {
         <span className="pb-1.5 text-[11px] uppercase tracking-[0.1em] text-muted">
           Lock fee, paid today
         </span>
-        <span className="text-[2.75rem] leading-none font-extralight tracking-[-0.05em] tabular-nums">
-          {formatMoney(fare.lock.fee)}
+        <span
+          className={`text-[2.75rem] leading-none font-extralight tracking-[-0.05em] tabular-nums transition-opacity ${
+            quoting ? "opacity-50" : ""
+          }`}
+        >
+          {formatMoney(fee)}
         </span>
       </div>
 
-      <Link href={`/checkout?fare=${fare.id}`} className={solidButtonClass}>
+      {quoteError ? (
+        <p role="alert" className="text-[13px] leading-normal font-semibold text-accent">
+          {quoteError}
+        </p>
+      ) : null}
+
+      <Link
+        href={checkoutHref}
+        aria-disabled={quoting || Boolean(quoteError) || parseDraftCents(draft) === null}
+        className={`${solidButtonClass} ${
+          quoting || quoteError || parseDraftCents(draft) === null
+            ? "pointer-events-none opacity-60"
+            : ""
+        }`}
+      >
         Lock this fare
       </Link>
       <p className="text-center text-xs font-medium text-muted">
@@ -69,4 +195,24 @@ export default function LockTicket({ fare }: { fare: FareDetail }) {
       </p>
     </Card>
   );
+}
+
+/** Whole dollars when even, otherwise two decimals — matches formatMoney. */
+function centsToDraft(cents: number): string {
+  return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
+}
+
+/** Digits and at most one decimal point, up to two places. */
+function sanitizeDraft(value: string): string {
+  const cleaned = value.replace(/[^\d.]/g, "");
+  const [whole = "", ...rest] = cleaned.split(".");
+  if (rest.length === 0) return whole;
+  return `${whole}.${rest.join("").slice(0, 2)}`;
+}
+
+function parseDraftCents(draft: string): number | null {
+  if (!draft || draft === ".") return null;
+  const cents = Math.round(Number(draft) * 100);
+  if (!Number.isFinite(cents) || !Number.isInteger(cents) || cents <= 0) return null;
+  return cents;
 }

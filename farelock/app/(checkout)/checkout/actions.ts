@@ -16,7 +16,16 @@ export async function buyLock(
 
   const fareId = String(formData.get("fareId") ?? "");
   const expectedFeeCents = Number(formData.get("expectedFeeCents"));
+  const strikeRaw = formData.get("strikeCents");
+  const strikeCents =
+    strikeRaw === null || strikeRaw === "" ? undefined : Number(strikeRaw);
   if (!fareId || !Number.isInteger(expectedFeeCents) || expectedFeeCents <= 0) {
+    return { error: "This FareLock quote is invalid. Return to the fare and try again." };
+  }
+  if (
+    strikeCents !== undefined &&
+    (!Number.isInteger(strikeCents) || strikeCents <= 0)
+  ) {
     return { error: "This FareLock quote is invalid. Return to the fare and try again." };
   }
 
@@ -27,6 +36,7 @@ export async function buyLock(
       body: JSON.stringify({
         fare_id: fareId,
         expected_fee_cents: expectedFeeCents,
+        ...(strikeCents !== undefined ? { strike_cents: strikeCents } : {}),
       }),
     });
   } catch (error) {

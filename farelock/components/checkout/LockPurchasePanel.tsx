@@ -11,10 +11,13 @@ export default function LockPurchasePanel({
   fareId,
   initialFee,
   balance,
+  strikeCents,
 }: {
   fareId: string;
   initialFee: Money;
   balance: Money | null;
+  /** Locked fare in cents when the member chose a custom strike. */
+  strikeCents?: number;
 }) {
   const [state, formAction, pending] = useActionState(buyLock, null);
   const fee = { ...initialFee, amount: state?.feeCents ?? initialFee.amount };
@@ -61,6 +64,9 @@ export default function LockPurchasePanel({
         <form action={formAction} className="flex flex-col gap-5">
           <input type="hidden" name="fareId" value={fareId} />
           <input type="hidden" name="expectedFeeCents" value={fee.amount} />
+          {strikeCents !== undefined ? (
+            <input type="hidden" name="strikeCents" value={strikeCents} />
+          ) : null}
           <label className="flex cursor-pointer items-start gap-3 text-[13px] leading-normal text-soft">
             <input
               type="checkbox"
