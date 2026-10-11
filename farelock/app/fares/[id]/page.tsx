@@ -34,13 +34,19 @@ export async function generateMetadata({
  * is only known when a request arrives, so everything that depends on it sits
  * inside <Suspense>: the frame appears at once and the fare streams in.
  */
-export default function FarePage({ params }: PageProps<"/fares/[id]">) {
+export default async function FarePage({
+  params,
+  searchParams,
+}: PageProps<"/fares/[id]">) {
+  const { q } = await searchParams;
+  const query = (Array.isArray(q) ? q[0] : q)?.trim() ?? "";
+  const backHref = query ? `/search?q=${encodeURIComponent(query)}` : "/search";
+
   return (
     <main className="flex-1">
       <Container className="flex flex-col gap-5 pt-6 pb-20">
-        {/* LATER: go back to the search the visitor came from (/search?q=…). */}
         <Link
-          href="/search"
+          href={backHref}
           className="inline-flex min-h-11 items-center self-start rounded-full bg-foreground/10 px-4 text-xs font-medium transition-colors duration-200 hover:bg-foreground/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
           Back to search

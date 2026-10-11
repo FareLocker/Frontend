@@ -63,6 +63,7 @@ export const getFare = cache(async (id: string): Promise<FareDetail | null> => {
     baggage: "—",
     fareRules: "—",
     weeklyMovePercent: Math.abs(fare.trend.changePercent),
+    historySource: data.history_source,
   };
 });
 
@@ -94,6 +95,7 @@ type BackendEndpoint = {
 type BackendFareDetail = {
   fare: BackendFare;
   history: { date: string; amount_cents: number }[];
+  history_source: "google" | "local";
 };
 
 // ---------------------------------------------------- backend → frontend

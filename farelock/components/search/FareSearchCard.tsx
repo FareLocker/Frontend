@@ -26,7 +26,13 @@ const glassPill =
  * It renders on the server; only the trend chart (FareSearchCardAni) runs in
  * the browser.
  */
-export default function FareSearchCard({ fare }: { fare: FareSearchResult }) {
+export default function FareSearchCard({
+  fare,
+  query,
+}: {
+  fare: FareSearchResult;
+  query: string;
+}) {
   const trendLabel = formatTrend(fare.trend.changePercent);
 
   return (
@@ -53,9 +59,9 @@ export default function FareSearchCard({ fare }: { fare: FareSearchResult }) {
               {formatDuration(fare.durationMinutes)}
             </span>
             <span aria-hidden className="flex items-center gap-1.5 self-stretch">
-              <span className="h-[7px] w-[7px] shrink-0 rounded-full border border-foreground" />
+              <span className="h-1.75 w-1.75 shrink-0 rounded-full border border-foreground" />
               <span className="h-px flex-1 bg-foreground/30" />
-              <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-foreground" />
+              <span className="h-1.75 w-1.75 shrink-0 rounded-full bg-foreground" />
             </span>
           </div>
           <Endpoint label="Arrive" endpoint={fare.arrive} />
@@ -63,7 +69,7 @@ export default function FareSearchCard({ fare }: { fare: FareSearchResult }) {
       </div>
 
       {/* Fare trend */}
-      <div className="pixel-grid relative min-h-[150px] min-w-0 flex-[1_1_260px] overflow-hidden rounded-[1.25rem] border border-foreground/[0.08] bg-pitch">
+      <div className="pixel-grid relative min-h-37.5 min-w-0 flex-[1_1_260px] overflow-hidden rounded-[1.25rem] border border-foreground/[0.08] bg-pitch">
         <FareSearchCardAni points={fare.trend.points} />
         <span
           className={`${glassPill} left-3 font-bold uppercase tracking-[0.05em]`}
@@ -89,7 +95,7 @@ export default function FareSearchCard({ fare }: { fare: FareSearchResult }) {
           )}
         </LabelValue>
         <Link
-          href={`/fares/${fare.id}`}
+          href={`/fares/${fare.id}?q=${encodeURIComponent(query)}`}
           className="inline-flex min-h-12 items-center justify-center rounded-full bg-foreground px-[26px] text-[0.9rem] font-semibold tracking-[-0.01em] text-background transition-colors duration-300 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
         >
           View fare

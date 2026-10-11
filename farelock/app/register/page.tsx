@@ -35,6 +35,8 @@ export default function RegisterPage() {
             name="phone_number"
             type="tel"
             autoComplete="tel"
+            inputMode="tel"
+            placeholder="(555) 123-4567"
             maxLength={20}
           />
           <AuthField
