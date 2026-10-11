@@ -4,6 +4,7 @@ import Label from "@/components/Label";
 import PlaneFlyby from "@/components/PlaneFlyby";
 import type { TextStop } from "@/lib/plane-flyby";
 
+
 /*
  * Where this strip's text ends, top to bottom, so the plane dims behind it:
  * clear across the top third, then the heading block down the left half.
@@ -44,7 +45,7 @@ export function SearchHeading({
   summary,
 }: {
   title: string;
-  summary?: string;
+  summary?: ReactNode;
 }) {
   return (
     <>

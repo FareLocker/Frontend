@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Container from "@/components/Container";
 import CachedFareSearchResults from "@/components/search/CachedFareSearchResults";
-import { FareSearchListSkeleton } from "@/components/search/FareSearchList";
-import SearchResultsHeader, {
-  SearchHeading,
-} from "@/components/search/SearchResultsHeader";
+import SearchExperience from "@/components/search/SearchExperience";
+import { SearchHeading } from "@/components/search/SearchResultsHeader";
 import { searchFares } from "@/lib/fares";
 
 export const metadata: Metadata = {
@@ -15,25 +12,32 @@ export const metadata: Metadata = {
 type SearchParams = PageProps<"/search">["searchParams"];
 
 /*
- * The query comes from the URL (/search?q=…), which is only known when a
- * request arrives. Everything that depends on it sits inside <Suspense>, so
- * the page frame and the plane appear instantly and the heading and results
- * stream in after.
+ * Instant feedback (new query title + logo intro) is owned by SearchExperience
+ * on the client. These server slots only paint after that intro finishes.
  */
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <main className="flex-1">
-      <SearchResultsHeader>
-        <Suspense fallback={<SearchHeading title="Searching…" />}>
-          <ResultsHeading searchParams={searchParams} />
-        </Suspense>
-      </SearchResultsHeader>
-
-      <Container className="pt-10 pb-24">
-        <Suspense fallback={<FareSearchListSkeleton />}>
-          <Results searchParams={searchParams} />
-        </Suspense>
-      </Container>
+      <Suspense fallback={null}>
+        <SearchExperience
+          emptyHeading={
+            <SearchHeading
+              title="Search fares"
+              summary="Type a city, airline or airport in the search bar."
+            />
+          }
+          heading={
+            <Suspense fallback={<SearchHeading title="Searching…" />}>
+              <ResultsHeading searchParams={searchParams} />
+            </Suspense>
+          }
+          results={
+            <Suspense fallback={null}>
+              <Results searchParams={searchParams} />
+            </Suspense>
+          }
+        />
+      </Suspense>
     </main>
   );
 }
@@ -53,13 +57,28 @@ async function ResultsHeading({ searchParams }: { searchParams: SearchParams }) 
       />
     );
   }
+  // Title comes from the URL at once; only the count waits on the API.
+  return (
+    <SearchHeading
+      title={query}
+      summary={
+        <Suspense fallback="Searching…">
+          <ResultCount query={query} />
+        </Suspense>
+      }
+    />
+  );
+}
+
+async function ResultCount({ query }: { query: string }) {
   const fares = await searchFares(query);
-  const count = fares.length === 1 ? "1 fare" : `${fares.length} fares`;
-  return <SearchHeading title={query} summary={count} />;
+  return fares.length === 1 ? "1 fare" : `${fares.length} fares`;
 }
 
 async function Results({ searchParams }: { searchParams: SearchParams }) {
   const query = await readQuery(searchParams);
   if (!query) return null;
-  return <CachedFareSearchResults fares={await searchFares(query)} query={query} />;
+  return (
+    <CachedFareSearchResults fares={await searchFares(query)} query={query} />
+  );
 }
