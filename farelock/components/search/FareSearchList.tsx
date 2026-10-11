@@ -5,8 +5,10 @@ import FareSearchCardSkeleton from "./FareSearchCardSkeleton";
 /** The list of results, or a message when there are none. */
 export default function FareSearchList({
   fares,
+  query,
 }: {
   fares: FareSearchResult[];
+  query: string;
 }) {
   if (fares.length === 0) {
     return (
@@ -23,7 +25,7 @@ export default function FareSearchList({
     <ul className="flex flex-col gap-5">
       {fares.map((fare) => (
         <li key={fare.id}>
-          <FareSearchCard fare={fare} />
+          <FareSearchCard fare={fare} query={query} />
         </li>
       ))}
     </ul>
