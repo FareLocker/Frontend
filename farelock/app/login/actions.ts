@@ -98,7 +98,10 @@ export async function register(
   if ("error" in result) return result;
 
   await startSession(result.token);
-  redirect("/account");
+  // Registration provisions the messaging line as part of the same request.
+  // Take the traveler straight to the screen that shows its number and lets
+  // them send START, rather than leaving them to find and retry setup later.
+  redirect("/connect");
 }
 
 export async function logOut() {
