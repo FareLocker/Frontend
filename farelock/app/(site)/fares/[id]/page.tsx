@@ -52,7 +52,10 @@ export async function generateMetadata({
  *   an ended lock  a record of how it went (LockOutcomeCard). Nothing on
  *                  this view buys or exercises anything.
  */
-export default function FarePage({ params, searchParams }: PageProps<"/fares/[id]">) {
+export default function FarePage({
+  params,
+  searchParams,
+}: PageProps<"/fares/[id]">) {
   return (
     <main className="flex-1">
       <Container className="flex flex-col gap-5 pt-6 pb-20">
@@ -72,16 +75,22 @@ async function FareTrade({
   searchParams: SearchParams;
 }) {
   const { id } = await params;
-  // From the team's search-bug fix: search cards link here with ?q=<query>,
-  // so "Back to search" returns to the same results. Read inside <Suspense>,
-  // since search params are only known per request.
   const { q } = await searchParams;
-  const query = (Array.isArray(q) ? q[0] : q)?.trim() ?? "";
-  const backToSearch = query ? `/search?q=${encodeURIComponent(query)}` : "/search";
+  const query = (Array.isArray(q) ? q[0] : q)?.trim();
   // The fare, and the member's lock on it if they have one. Asked for
   // together, so one request does not wait on the other.
-  const [fare, lock] = await Promise.all([getFare(id), getLockForFare(id)]);
+  const [fare, foundLock] = await Promise.all([getFare(id), getLockForFare(id)]);
   if (!fare) notFound();
+  const lock = foundLock
+    ? {
+        ...foundLock,
+        originCity: fare.depart.city,
+        destinationCity: fare.arrive.city,
+        flightNumber: fare.flightNumber,
+        stopAirports: fare.stopAirports,
+        departs: fare.depart.localTime,
+      }
+    : null;
 
   // Reading the clock makes this part render per request, never at build.
   await connection();
@@ -90,9 +99,8 @@ async function FareTrade({
 
   return (
     <>
-      <FarePoller />
       <Link
-        href={ended ? "/locks" : backToSearch}
+        href={ended ? "/locks" : query ? `/search?q=${encodeURIComponent(query)}` : "/search"}
         className="inline-flex min-h-11 items-center self-start rounded-full bg-foreground/10 px-4 text-xs font-medium transition-colors duration-200 hover:bg-foreground/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
       >
         {ended ? "Back to my locks" : "Back to search"}
@@ -130,13 +138,10 @@ async function FareTrade({
 function LockColumn({ fare, lock }: { fare: FareDetail; lock: Lock | null }) {
   if (!lock) return <LockTicket fare={fare} />;
   if (lock.status !== "open") return <LockOutcomeCard lock={lock} />;
-  // The fare on this page and the lock's own copy of it can be a moment
-  // apart. Use the page's, so every figure on it agrees.
-  const live = { ...lock, fare: fare.fare };
   return (
     <>
-      <HeldLockCard lock={live} />
-      <AutoExerciseCard lock={live} />
+      <HeldLockCard lock={lock} />
+      <AutoExerciseCard lock={lock} />
     </>
   );
 }

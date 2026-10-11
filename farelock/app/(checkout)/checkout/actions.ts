@@ -1,45 +1,72 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { api, ApiError } from "@/lib/api";
+import { authHeaders, getCurrentUser } from "@/lib/auth";
 
-/*
- * What happens when "Pay and lock" is pressed on the lock checkout.
- *
- * BACKEND NOTE (COMPLETED02): the backend does have one now:
- *   POST /locks/farelock/purchase  (bearer token)
- *   body { origin, destination, departure_date, flight_number?, fare_cents }
- *   -> { id, strike_cents, fee_cents, max_payout_cents, protection_days,
- *        status, balance_cents, ... }
- * It re-prices, checks the wallet and debits the fee in one go; a short
- * wallet comes back as 422 { code: "insufficient_funds" }. Not wired yet.
- *
- * PLACEHOLDER: there is no endpoint for buying a lock yet, so this checks who
- * is asking and then sends them to the fare's page without buying anything.
- * Fill in the marked section to make it real.
- *
- * It is a server action, the same pattern as `pay` in the wallet's
- * actions.ts, so the purchase is made by the server, never by the browser.
- */
-export async function buyLock(formData: FormData): Promise<void> {
+export type BuyLockState = { error: string; feeCents?: number } | null;
+
+export async function buyLock(
+  _state: BuyLockState,
+  formData: FormData,
+): Promise<BuyLockState> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const fareId = String(formData.get("fareId") ?? "");
+  const expectedFeeCents = Number(formData.get("expectedFeeCents"));
+  if (!fareId || !Number.isInteger(expectedFeeCents) || expectedFeeCents <= 0) {
+    return { error: "This FareLock quote is invalid. Return to the fare and try again." };
+  }
 
-  // BACKEND (buy a lock) ---------------------------------------------------
-  // 1. Ask the backend to buy a lock on `fareId` for `user.id`, paid from
-  //    their wallet. Send the fee the member was shown (add it to the form as
-  //    a hidden field), so the backend can refuse if the price has moved
-  //    since instead of charging a figure they never saw.
-  // 2. The backend, not this page, must check the wallet covers it and take
-  //    the money and create the lock together, so a failure can't leave one
-  //    without the other.
-  // 3. On failure, come back to the checkout with the reason (return it and
-  //    read it with useActionState, as the log in form does).
-  // 4. revalidatePath("/locks") and the fare's page, so both show the lock.
-  // -------------------------------------------------------------------------
+  try {
+    await api("/locks/farelock/purchase", {
+      method: "POST",
+      headers: await authHeaders(),
+      body: JSON.stringify({
+        fare_id: fareId,
+        expected_fee_cents: expectedFeeCents,
+      }),
+    });
+  } catch (error) {
+    if (!(error instanceof ApiError)) {
+      console.error("FareLock purchase failed:", error);
+      return { error: "Can't reach FareLocker right now. Try again in a moment." };
+    }
+    const detail =
+      typeof error.detail === "object" && error.detail !== null
+        ? (error.detail as Record<string, unknown>)
+        : {};
+    const code = typeof detail.code === "string" ? detail.code : undefined;
+    if (code === "fee_changed" && typeof detail.fee_cents === "number") {
+      return {
+        error: "The FareLock fee changed. Review the new total and confirm again.",
+        feeCents: detail.fee_cents,
+      };
+    }
+    if (code === "insufficient_funds") {
+      return { error: "Your wallet balance is too low for this FareLock." };
+    }
+    if (code === "lock_already_open") {
+      revalidatePath("/locks");
+      revalidatePath(`/fares/${fareId}`);
+      redirect(`/fares/${encodeURIComponent(fareId)}`);
+    }
+    if (error.status === 404) {
+      return { error: "This fare is no longer available. Return to search and choose it again." };
+    }
+    return {
+      error:
+        typeof detail.message === "string"
+          ? detail.message
+          : "FareLocker couldn't complete the purchase. Try again.",
+    };
+  }
 
-  // The fare's page shows the member's lock once they hold one.
+  revalidatePath("/locks");
+  revalidatePath(`/fares/${fareId}`);
+  revalidatePath("/wallet");
+  revalidatePath("/account");
   redirect(`/fares/${encodeURIComponent(fareId)}`);
 }

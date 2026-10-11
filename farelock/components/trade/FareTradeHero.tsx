@@ -131,7 +131,7 @@ export default function FareTradeHero({
         <p
           className={`text-[clamp(3rem,6vw,4.75rem)] leading-none font-extralight tracking-[-0.05em] tabular-nums ${ended ? "text-soft" : ""}`}
         >
-          {formatMoney(ended ? lock.fare : fare.fare)}
+          {formatMoney(lock?.fare ?? fare.fare)}
         </p>
         <dl className="flex flex-wrap justify-end gap-x-9 gap-y-3 text-right">
           {ended ? (

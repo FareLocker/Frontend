@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import Card from "@/components/Card";
 import CheckoutHeader from "@/components/checkout/CheckoutHeader";
+import LockPurchasePanel from "@/components/checkout/LockPurchasePanel";
 import Container from "@/components/Container";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import Label from "@/components/Label";
-import PillLink, { solidButtonClass } from "@/components/PillLink";
+import PillLink from "@/components/PillLink";
 import { cardHeadingClass } from "@/components/trade/FlightDetailsCard";
 import { getCurrentUser } from "@/lib/auth";
 import { getFare } from "@/lib/fares";
@@ -15,7 +15,6 @@ import { formatDate, formatMoney, formatStops, formatTime } from "@/lib/format";
 import { getLockForFare, maxGain } from "@/lib/locks";
 import { TBD } from "@/lib/placeholders";
 import { getBalanceOrNull } from "@/lib/wallet";
-import { buyLock } from "./actions";
 
 export const metadata: Metadata = {
   title: "Review your lock | FareLocker",
@@ -66,7 +65,6 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
   // LATER (taxes): TBD.lockTaxes is shown but not added, so the total is the
   // fee alone until someone decides whether a lock fee carries any.
   const total = quote.fee;
-  const short = balance ? total.amount - balance.amount : 0;
   const departs = `${formatDate(fare.depart.localTime)}, ${formatTime(fare.depart.localTime)}`;
 
   return (
@@ -142,54 +140,12 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
               </DetailRow>
             </DetailList>
 
-            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 rounded-[1.25rem] bg-pitch px-[22px] py-5">
-              <span className="pb-1.5 text-[11px] uppercase tracking-[0.1em] text-muted">
-                Total
-              </span>
-              <span className="text-[2.75rem] leading-none font-extralight tracking-[-0.05em] tabular-nums">
-                {formatMoney(total)}
-              </span>
-            </div>
+            <LockPurchasePanel fareId={fare.id} initialFee={total} balance={balance} />
 
             <p className="rounded-2xl bg-raised px-[18px] py-3.5 text-[13px] leading-normal text-soft">
               You are buying a lock on this fare, not the flight. FareLocker
               does not sell tickets.
             </p>
-
-            {short > 0 ? (
-              /* The wallet is the only way to pay, so send them to top it up. */
-              <div className="flex flex-col gap-3">
-                <p role="status" className="text-[13px] leading-normal font-semibold text-accent">
-                  Your wallet is {formatMoney({ amount: short, currency: total.currency })}{" "}
-                  short of this lock.
-                </p>
-                <Link href="/wallet/checkout" className={`${solidButtonClass} w-full`}>
-                  Add funds
-                </Link>
-              </div>
-            ) : (
-              <form action={buyLock} className="flex flex-col gap-5">
-                <input type="hidden" name="fareId" value={fare.id} />
-                <label className="flex cursor-pointer items-start gap-3 text-[13px] leading-normal text-soft">
-                  <input
-                    type="checkbox"
-                    name="terms"
-                    required
-                    className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-accent"
-                  />
-                  <span>
-                    I have read the{" "}
-                    {/* LATER (lock terms): /lock-terms has not been built. */}
-                    <Link href="/lock-terms" className="text-foreground underline underline-offset-2">
-                      lock terms
-                    </Link>
-                  </span>
-                </label>
-                <button type="submit" className={`${solidButtonClass} w-full`}>
-                  Pay {formatMoney(total)} and lock
-                </button>
-              </form>
-            )}
 
             <p className="text-center text-xs leading-normal text-muted">
               Price held for {TBD.quoteHold}. After that we re-price the lock.

@@ -47,7 +47,24 @@ async function LocksView({ searchParams }: { searchParams: SearchParams }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [locks, { show }] = await Promise.all([getLocks(), searchParams]);
+  const { show } = await searchParams;
+  let locks: Awaited<ReturnType<typeof getLocks>>;
+  try {
+    locks = await getLocks();
+  } catch (error) {
+    console.error("Lock list failed:", error);
+    return (
+      <div role="alert" className="flex flex-col items-start gap-4 border-t border-foreground/10 pt-6">
+        <p className="max-w-[46ch] text-soft">
+          We couldn&rsquo;t load your FareLocks right now. Your purchases are safe;
+          try this page again in a moment.
+        </p>
+        <PillLink href="/locks" size="sm">
+          Try again
+        </PillLink>
+      </div>
+    );
+  }
   const filter = parseLockFilter(show);
   const shown = locks.filter((lock) => matchesFilter(lock, filter));
 

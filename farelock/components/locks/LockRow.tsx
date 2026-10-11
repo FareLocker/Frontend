@@ -27,7 +27,18 @@ export default function LockRow({ lock, now }: { lock: Lock; now: Date }) {
   const open = lock.status === "open";
   const expired = lock.status === "expired";
   const statusId = `lock-status-${lock.id}`;
-  const value = lockValue(lock.lockedFare, lock.fare);
+  const value = lock.fare ? lockValue(lock.lockedFare, lock.fare) : null;
+  const origin = lock.originCity
+    ? `${lock.originCity} (${lock.origin})`
+    : lock.origin;
+  const destination = lock.destinationCity
+    ? `${lock.destinationCity} (${lock.destination})`
+    : lock.destination;
+  const flightDetails = [
+    lock.departs.includes("T") ? formatTime(lock.departs) : null,
+    lock.stopAirports ? formatStops(lock.stopAirports) : null,
+    lock.flightNumber ?? "Route-level lock",
+  ].filter(Boolean);
   // Ended locks are a record, so their figures are a shade quieter.
   const figure = open ? "" : "text-soft";
 
@@ -39,11 +50,10 @@ export default function LockRow({ lock, now }: { lock: Lock; now: Date }) {
     >
       <div className="flex min-w-0 flex-[1_1_280px] flex-col gap-2">
         <h2 className="text-[1.35rem] leading-tight tracking-[-0.03em]">
-          {lock.originCity} ({lock.origin}) to {lock.destinationCity} ({lock.destination})
+          {origin} to {destination}
         </h2>
         <p className="text-[13px] text-muted">
-          {formatDate(lock.departs)} · {formatTime(lock.departs)} ·{" "}
-          {formatStops(lock.stopAirports)} · {lock.flightNumber}
+          {formatDate(lock.departs)} · {flightDetails.join(" · ")}
         </p>
         <Status lock={lock} id={statusId} />
       </div>
@@ -57,16 +67,16 @@ export default function LockRow({ lock, now }: { lock: Lock; now: Date }) {
           size="lg"
           className={figure}
         >
-          {formatMoney(lock.fare)}
+          {lock.fare ? formatMoney(lock.fare) : "Unavailable"}
         </LabelValue>
         {open ? (
           <LabelValue
             label="Lock pays"
             size="lg"
             // The accent picks out a lock that is worth something right now.
-            className={value.amount > 0 ? "text-accent" : ""}
+            className={(value?.amount ?? 0) > 0 ? "text-accent" : ""}
           >
-            {formatMoney(value)}
+            {value ? formatMoney(value) : "—"}
           </LabelValue>
         ) : (
           <LabelValue label="Lock paid" size="lg" className={figure}>
@@ -78,13 +88,17 @@ export default function LockRow({ lock, now }: { lock: Lock; now: Date }) {
       <div className="ml-auto flex min-w-0 flex-col items-end gap-3">
         <p className="text-right text-[13px] text-muted">{footnote(lock, now)}</p>
         <div className="flex flex-wrap justify-end gap-2">
-          <PillLink href={`/fares/${lock.fareId}`}>View</PillLink>
+          {lock.fareId ? <PillLink href={`/fares/${lock.fareId}`}>View fare</PillLink> : null}
           {open ? (
             canExercise(lock) ? (
               <ExerciseLock
                 summary={exerciseSummary(lock)}
                 size="md"
-                label={value.amount > 0 ? `Exercise for ${formatMoney(value)}` : "Exercise"}
+                label={
+                  value && value.amount > 0
+                    ? `Exercise for ${formatMoney(value)}`
+                    : "Exercise"
+                }
               />
             ) : (
               <button
@@ -98,7 +112,7 @@ export default function LockRow({ lock, now }: { lock: Lock; now: Date }) {
             )
           ) : null}
           {expired ? (
-            <PillLink href={`/search?q=${encodeURIComponent(`${lock.originCity} to ${lock.destinationCity}`)}`}>
+            <PillLink href={`/search?q=${encodeURIComponent(`${lock.originCity ?? lock.origin} to ${lock.destinationCity ?? lock.destination}`)}`}>
               Search this route again
             </PillLink>
           ) : null}
@@ -113,6 +127,13 @@ function Status({ lock, id }: { lock: Lock; id: string }) {
   const ended = lock.endedOn ? formatDate(lock.endedOn) : "";
   switch (lock.status) {
     case "open": {
+      if (!lock.fare) {
+        return (
+          <p id={id} className={`${chip} mt-1 bg-foreground/10`}>
+            Active · current fare unavailable
+          </p>
+        );
+      }
       const gap = lock.fare.amount - lock.lockedFare.amount;
       return (
         <p id={id} className={`${chip} mt-1 flex items-center gap-2 bg-foreground/10`}>

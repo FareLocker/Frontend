@@ -11,6 +11,7 @@ import type { Lock } from "@/types/lock";
  */
 export default function LockSummary({ locks, now }: { locks: Lock[]; now: Date }) {
   const open = locks.filter((lock) => lock.status === "open");
+  const valued = open.filter((lock) => lock.fare !== null);
   const paid = locks.filter((lock) => (lock.payout?.amount ?? 0) > 0);
   const soonest = Math.min(...open.map((lock) => daysUntil(lock.departs, now)));
 
@@ -36,11 +37,19 @@ export default function LockSummary({ locks, now }: { locks: Lock[]; now: Date }
           label="Worth right now"
           size="lg"
           detail={
-            <span className="text-muted">What your active locks would pay today</span>
+            <span className="text-muted">
+              {valued.length === open.length
+                ? "What your active locks would pay today"
+                : `${open.length - valued.length} active valuation unavailable`}
+            </span>
           }
         >
           {formatMoney(
-            total(open.map((lock) => lockValue(lock.lockedFare, lock.fare))),
+            total(
+              valued.map((lock) =>
+                lockValue(lock.lockedFare, lock.fare as Money),
+              ),
+            ),
           )}
         </LabelValue>
       </Card>

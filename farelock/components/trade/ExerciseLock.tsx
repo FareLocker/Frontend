@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useRef } from "react";
+import { useActionState, useId, useRef } from "react";
+import { exerciseLock } from "@/app/(site)/locks/actions";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import Label from "@/components/Label";
 import { pillClass, solidButtonClass, solidButtonSmallClass } from "@/components/PillLink";
@@ -35,26 +36,15 @@ export type ExerciseSummary = {
  * on Escape. A <form method="dialog"> closes it when one of its buttons is
  * pressed.
  *
- * BACKEND NOTE (COMPLETED02): POST /locks/{lock_id}/exercise (bearer token)
- * exists. It returns { status, settle_fare_cents, payout_cents,
- * balance_cents, ... } or 422 with code fare_not_below_strike,
- * lock_not_open, past_exercise_window or fare_unavailable. Not wired yet.
- *
- * LATER (exercise): nothing is sent anywhere yet, so "Exercise and receive"
- * only closes the dialog. When the backend exists:
- *   1. Give that button's form a server action that exercises the lock, in
- *      place of method="dialog".
- *   2. Have the backend fix the payout for a short time when the dialog
- *      opens, and show how long is left, because the fare can move while the
- *      visitor is reading.
- *   3. Afterwards, refresh the page. The lock's status is no longer "open",
- *      so the fare page shows it as ended (LockOutcomeCard) and My locks
- *      moves it out of the active ones.
+ * The confirmation submits to a server action. The API rechecks the fare at
+ * exercise time, so a moved fare is reported inline instead of settling at a
+ * stale preview value.
  */
 export default function ExerciseLock({
   summary,
   size = "lg",
   label = "Exercise lock",
+  returnTo = "/locks",
 }: {
   summary: ExerciseSummary;
   /**
@@ -64,9 +54,12 @@ export default function ExerciseLock({
   size?: "lg" | "md";
   /** The opening button's words. */
   label?: string;
+  /** Where to return after the API confirms the exercise. */
+  returnTo?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const [state, formAction, pending] = useActionState(exerciseLock, null);
 
   return (
     <>
@@ -141,12 +134,24 @@ export default function ExerciseLock({
             Exercising ends this lock. It can&rsquo;t be undone.
           </p>
 
-          <form method="dialog" className="flex flex-col gap-3">
-            {/* Goes with the form once it has a server action. */}
+          {state?.error ? (
+            <p role="alert" className="text-[13px] leading-normal font-semibold text-accent">
+              {state.error}
+            </p>
+          ) : null}
+
+          <form action={formAction} className="flex flex-col gap-3">
             <input type="hidden" name="lockId" value={summary.lockId} />
-            <button type="submit" className={`${solidButtonClass} w-full`}>
-              Exercise and receive {summary.payout}
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <button
+              type="submit"
+              disabled={pending}
+              className={`${solidButtonClass} w-full disabled:cursor-wait disabled:opacity-60`}
+            >
+              {pending ? "Exercising…" : `Exercise and receive ${summary.payout}`}
             </button>
+          </form>
+          <form method="dialog">
             <button type="submit" className={`${pillClass.md} w-full cursor-pointer`}>
               Keep my lock
             </button>

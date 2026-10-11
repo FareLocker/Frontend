@@ -1,6 +1,6 @@
 import { cache } from "react";
-import { getCurrentUser } from "@/lib/auth";
-import { getFare } from "@/lib/fares";
+import { api } from "@/lib/api";
+import { authHeaders, getCurrentUser } from "@/lib/auth";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { FarePoint, Money } from "@/types/fare";
 import type { Lock, LockStatus } from "@/types/lock";
@@ -19,10 +19,6 @@ import type { Lock, LockStatus } from "@/types/lock";
  * A lock that is still open when its flight departs is exercised
  * automatically: it pays whatever it is worth at that moment, which may be
  * nothing. The backend does that; the pages only show the result.
- *
- * PLACEHOLDER: the sums below are here so the pages have figures to show.
- * When the backend exists, the amount it quotes is the one that counts: show
- * its figure rather than these.
  */
 
 /** The words shown for each status. */
@@ -60,12 +56,16 @@ export function lockValue(lockedFare: Money, fare: Money): Money {
 }
 
 /**
- * A member can exercise an open lock while the fare is at or below the
- * locked fare. At exactly the locked fare it can be exercised but pays
- * nothing.
+ * A member can exercise an open lock only while the API says it is inside
+ * the exercise window and the current fare is strictly below the strike.
  */
 export function canExercise(lock: Lock): boolean {
-  return lock.status === "open" && lock.fare.amount <= lock.lockedFare.amount;
+  return (
+    lock.status === "open" &&
+    lock.exercisable &&
+    lock.fare !== null &&
+    lock.fare.amount < lock.lockedFare.amount
+  );
 }
 
 /**
@@ -73,14 +73,15 @@ export function canExercise(lock: Lock): boolean {
  * so the fare page and the My locks page can never disagree.
  */
 export function exerciseSummary(lock: Lock) {
+  const currentFare = lock.fare ?? lock.lockedFare;
   return {
     lockId: lock.id,
-    flight: `${lock.originCity} to ${lock.destinationCity} · ${formatDate(lock.departs)}`,
+    flight: `${lock.originCity ?? lock.origin} to ${lock.destinationCity ?? lock.destination} · ${formatDate(lock.departs)}`,
     lockedFare: formatMoney(lock.lockedFare),
-    fareNow: formatMoney(lock.fare),
-    difference: formatMoney(fareDrop(lock.lockedFare, lock.fare)),
+    fareNow: formatMoney(currentFare),
+    difference: formatMoney(fareDrop(lock.lockedFare, currentFare)),
     maxGain: formatMoney(maxGain(lock.lockedFare)),
-    payout: formatMoney(lockValue(lock.lockedFare, lock.fare)),
+    payout: formatMoney(lockValue(lock.lockedFare, currentFare)),
   };
 }
 
@@ -109,43 +110,31 @@ export function lastCrossing(
  * Every lock the signed-in member has bought, newest first. Empty when
  * nobody is signed in.
  *
- * BACKEND NOTE (COMPLETED02): the backend now lists the member's locks:
- *   GET /locks?status=open|exercised|expired|pending_verification  (bearer)
- *   GET /locks/{lock_id}
- *   -> { id, origin, destination, departure_date, flight_number,
- *        strike_cents, fee_cents, max_payout_cents, protection_days, status,
- *        bought_at, settled_at, settle_fare_cents, payout_cents }
- * Not wired yet. Mapping notes: strike_cents -> lockedFare, bought_at ->
- * purchasedOn, settled_at -> endedOn, payout_cents -> payout. There is no
- * fareId: build it like the backend's fare_id() (origin-dest-date-flight,
- * lowercase, no spaces). Cities and the current fare come from getFare().
- * Also: the mock fare ids below don't exist in the real backend, and
- * lib/fares.ts getFare() now calls the backend, so each mock lock resolves to
- * null and every lock view (fare page, /locks, "Your locks") shows empty.
- * That is expected until the locks endpoint exists. No mock fares were added.
- *
- * PLACEHOLDER: the backend's locks are not tied to a user yet, so every
- * signed-in member gets the four mock locks below. Replace the body with a
- * request for the member's locks.
- *
  * The answer is different for every member, so never put "use cache" on
  * this: that cache is shared, and one person's locks would be shown to the
  * next. React's cache() is safe. It only lasts for one page render.
  */
-/*
- * Off since the team's lib/fares.ts started calling the real backend: the
- * mock locks point at mock fare ids the backend doesn't have, so each one
- * cost a failing /fares/{id} request (and a dev-overlay error) on every page
- * and still came back empty. Set to true only against mock fares. Remove
- * once getLocks() calls GET /locks.
- */
-const USE_MOCK_LOCKS = false;
-
 export const getLocks = cache(async (): Promise<Lock[]> => {
   const user = await getCurrentUser();
-  if (!user || !USE_MOCK_LOCKS) return [];
-  const locks = await Promise.all(MOCK_LOCKS.map(fillFromFare));
-  return locks.filter((lock) => lock !== null);
+  if (!user) return [];
+
+  const headers = await authHeaders();
+  const { locks } = await api<BackendLockList>("/locks", { headers });
+  const valuations = await Promise.all(
+    locks.map(async (lock) => {
+      if (lock.status !== "open") return null;
+      try {
+        return await api<BackendMarkToMarket>(
+          `/locks/${encodeURIComponent(String(lock.id))}/mark-to-market`,
+          { headers },
+        );
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  return locks.map((lock, index) => toLock(lock, valuations[index]));
 });
 
 /**
@@ -157,79 +146,56 @@ export const getLockForFare = cache(async (fareId: string): Promise<Lock | null>
   return onFare.find(isActive) ?? onFare[0] ?? null;
 });
 
-// ------------------------------------------------------------------ mocks
-// One lock in each state the pages have to draw, each on a mock fare from
-// lib/fares.ts so its page can be opened:
-//
-//   …-ma202   open, fare below the locked fare: can be exercised
-//   …-ma118   open, fare above the locked fare: worth nothing for now
-//   ewr-cdg…  exercised by the member before the flight
-//   jfk-sfo…  expired at departure with the fare above the locked fare
-//
-// Nothing here is "pending_verification"; set a status to that to see it.
-//
-// Only the dates are written down. The fares are read off the mock fare's
-// history for those dates, so a lock's figures always match its chart.
+type BackendLock = {
+  id: number;
+  origin: string;
+  destination: string;
+  departure_date: string;
+  flight_number: string | null;
+  fare_id: string | null;
+  strike_cents: number;
+  fee_cents: number;
+  status: LockStatus;
+  bought_at: string;
+  settled_at: string | null;
+  settle_fare_cents: number | null;
+  payout_cents: number | null;
+  currency: "USD";
+};
 
-type MockLock = Pick<Lock, "id" | "fareId" | "fee" | "status" | "purchasedOn" | "endedOn">;
+type BackendLockList = { locks: BackendLock[] };
 
-const MOCK_LOCKS: MockLock[] = [
-  {
-    id: "FL-7K2M9Q",
-    fareId: "jfk-lis-2027-01-12-ma202",
-    fee: { amount: 2200, currency: "USD" },
-    status: "open",
-    purchasedOn: "2026-08-30",
-  },
-  {
-    id: "FL-4T8XWD",
-    fareId: "jfk-lis-2027-01-12-ma118",
-    fee: { amount: 2400, currency: "USD" },
-    status: "open",
-    purchasedOn: "2026-09-02",
-  },
-  {
-    id: "FL-9B3HRV",
-    fareId: "ewr-cdg-2026-12-20-sa880",
-    fee: { amount: 2100, currency: "USD" },
-    status: "exercised",
-    purchasedOn: "2026-08-26",
-    endedOn: "2026-09-20",
-  },
-  {
-    id: "FL-2N6CJE",
-    fareId: "jfk-sfo-2026-09-30-ma417",
-    fee: { amount: 2000, currency: "USD" },
-    status: "expired",
-    purchasedOn: "2026-08-19",
-    endedOn: "2026-09-30",
-  },
-];
+type BackendMarkToMarket = {
+  status: LockStatus;
+  current_fare_cents: number | null;
+  exercisable: boolean;
+  fare_source: "provider" | "stored" | null;
+};
 
-/** Add the flight's details and the fares for the mock's dates. */
-async function fillFromFare(mock: MockLock): Promise<Lock | null> {
-  const fare = await getFare(mock.fareId);
-  if (!fare) return null;
-  /** The fare on a day, to the dollar, as the fare page rounds today's. */
-  const fareOn = (date: string): Money | null => {
-    const point = fare.history.find((entry) => entry.date === date);
-    if (!point) return null;
-    return { amount: Math.round(point.amount / 100) * 100, currency: fare.fare.currency };
-  };
-  const lockedFare = fareOn(mock.purchasedOn);
-  if (!lockedFare) return null;
-  const ended = mock.endedOn ? fareOn(mock.endedOn) : null;
+function toLock(lock: BackendLock, valuation: BackendMarkToMarket | null): Lock {
+  const fareAmount =
+    lock.status === "open" ? valuation?.current_fare_cents : lock.settle_fare_cents;
   return {
-    ...mock,
-    origin: fare.depart.airportCode,
-    destination: fare.arrive.airportCode,
-    originCity: fare.depart.city,
-    destinationCity: fare.arrive.city,
-    flightNumber: fare.flightNumber,
-    stopAirports: fare.stopAirports,
-    departs: fare.depart.localTime,
-    lockedFare,
-    fare: ended ?? fare.fare,
-    payout: ended ? lockValue(lockedFare, ended) : undefined,
+    id: String(lock.id),
+    fareId: lock.fare_id ?? undefined,
+    origin: lock.origin,
+    destination: lock.destination,
+    flightNumber: lock.flight_number ?? undefined,
+    departs: lock.departure_date,
+    lockedFare: { amount: lock.strike_cents, currency: lock.currency },
+    fee: { amount: lock.fee_cents, currency: lock.currency },
+    status: lock.status,
+    purchasedOn: lock.bought_at,
+    fare:
+      fareAmount === null || fareAmount === undefined
+        ? null
+        : { amount: fareAmount, currency: lock.currency },
+    exercisable: valuation?.exercisable ?? false,
+    fareSource: valuation?.fare_source ?? undefined,
+    endedOn: lock.settled_at ?? undefined,
+    payout:
+      lock.payout_cents === null
+        ? undefined
+        : { amount: lock.payout_cents, currency: lock.currency },
   };
 }

@@ -12,6 +12,7 @@ import type { Lock } from "@/types/lock";
  */
 export default function LockOutcomeCard({ lock }: { lock: Lock }) {
   const expired = lock.status === "expired";
+  const settlementFare = lock.fare;
 
   return (
     <Card className="flex flex-col gap-5">
@@ -20,10 +21,12 @@ export default function LockOutcomeCard({ lock }: { lock: Lock }) {
       <DetailList>
         <DetailRow label="Locked fare">{formatMoney(lock.lockedFare)}</DetailRow>
         <DetailRow label={expired ? "Fare at departure" : "Fare when exercised"}>
-          {formatMoney(lock.fare)}
+          {settlementFare ? formatMoney(settlementFare) : "Unavailable"}
         </DetailRow>
         <DetailRow label="Difference">
-          {formatMoney(fareDrop(lock.lockedFare, lock.fare))}
+          {settlementFare
+            ? formatMoney(fareDrop(lock.lockedFare, settlementFare))
+            : "—"}
         </DetailRow>
         <DetailRow label="Most it could pay">
           {formatMoney(maxGain(lock.lockedFare))}

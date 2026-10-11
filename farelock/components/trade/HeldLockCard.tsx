@@ -16,6 +16,7 @@ import ExerciseLock from "./ExerciseLock";
  */
 export default function HeldLockCard({ lock }: { lock: Lock }) {
   const reasonId = `exercise-unavailable-${lock.id}`;
+  const currentFare = lock.fare;
 
   return (
     <Card className="flex flex-col gap-5">
@@ -23,9 +24,11 @@ export default function HeldLockCard({ lock }: { lock: Lock }) {
 
       <DetailList>
         <DetailRow label="Locked fare">{formatMoney(lock.lockedFare)}</DetailRow>
-        <DetailRow label="Fare now">{formatMoney(lock.fare)}</DetailRow>
+        <DetailRow label="Fare now">
+          {currentFare ? formatMoney(currentFare) : "Unavailable"}
+        </DetailRow>
         <DetailRow label="Difference">
-          {formatMoney(fareDrop(lock.lockedFare, lock.fare))}
+          {currentFare ? formatMoney(fareDrop(lock.lockedFare, currentFare)) : "—"}
         </DetailRow>
         <DetailRow label="Most you can gain">
           {formatMoney(maxGain(lock.lockedFare))}
@@ -38,15 +41,18 @@ export default function HeldLockCard({ lock }: { lock: Lock }) {
           Lock value now
         </span>
         <span className="text-[2.75rem] leading-none font-extralight tracking-[-0.05em] tabular-nums">
-          {formatMoney(lockValue(lock.lockedFare, lock.fare))}
+          {currentFare ? formatMoney(lockValue(lock.lockedFare, currentFare)) : "—"}
         </span>
       </div>
 
       {canExercise(lock) ? (
         <>
-          <ExerciseLock summary={exerciseSummary(lock)} />
+          <ExerciseLock
+            summary={exerciseSummary(lock)}
+            returnTo={lock.fareId ? `/fares/${lock.fareId}` : "/locks"}
+          />
           <p className="text-center text-xs leading-normal font-medium text-muted">
-            The fare is at or below your locked fare
+            The fare is below your locked fare
           </p>
         </>
       ) : (
@@ -60,8 +66,9 @@ export default function HeldLockCard({ lock }: { lock: Lock }) {
             Exercise lock
           </button>
           <p id={reasonId} className="text-center text-xs leading-normal font-medium text-muted">
-            The fare is above your locked fare, so the lock is worth nothing
-            right now
+            {currentFare
+              ? "The fare is at or above your locked fare, so the lock cannot be exercised right now"
+              : "We couldn't confirm a current fare, so the lock cannot be exercised right now"}
           </p>
         </>
       )}

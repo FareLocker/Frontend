@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Container from "@/components/Container";
-import FareSearchList, {
-  FareSearchListSkeleton,
-} from "@/components/search/FareSearchList";
+import CachedFareSearchResults from "@/components/search/CachedFareSearchResults";
+import { FareSearchListSkeleton } from "@/components/search/FareSearchList";
 import SearchResultsHeader, {
   SearchHeading,
 } from "@/components/search/SearchResultsHeader";
@@ -62,5 +61,5 @@ async function ResultsHeading({ searchParams }: { searchParams: SearchParams }) 
 async function Results({ searchParams }: { searchParams: SearchParams }) {
   const query = await readQuery(searchParams);
   if (!query) return null;
-  return <FareSearchList fares={await searchFares(query)} query={query} />;
+  return <CachedFareSearchResults fares={await searchFares(query)} query={query} />;
 }
