@@ -50,7 +50,39 @@ export const TEAM: TeamMember[] = [
       { label: "LinkedIn", href: "https://linkedin.com/in/stephensulimani" },
     ],
   },
-  { name: "[NAME 2]", role: "[ROLE]", bio: BIO, links: [] },
-  { name: "[NAME 3]", role: "[ROLE]", bio: BIO, links: [] },
-  { name: "[NAME 4]", role: "[ROLE]", bio: BIO, links: [] },
+  {
+    name: "Andrew Babatunde",
+    role: "Backend",
+    bio: "Andrew built out FareLocker’s backend and led the Photon integration that lets people use FareLocker over iMessage. He also helped wire in the Google Gemini API so those chats can understand natural language. A senior Computer Science student at the University of Georgia, he likes turning real products into channels people already use every day.",
+    photo: "/team/babatunde.jpg",
+    links: [
+      { label: "Website", href: "https://andrvew.dev/" },
+      { label: "GitHub", href: "https://github.com/andrew-babatunde2004" },
+      {
+        label: "LinkedIn",
+        href: "https://www.linkedin.com/in/andrewbabatunde",
+      },
+    ],
+  },
+  {
+    name: "Seth Voisine",
+    role: "Frontend",
+    bio: "Seth shaped FareLocker’s look and feel, meticulously building out the pages, motion, and shared components that hold the product together. A senior Computer Science student at the University of Georgia, he loves when interface craft turns a technical idea into something people actually enjoy using.",
+
+    photo: "/team/seth.jpg",
+    links: [
+      { label: "GitHub", href: "https://github.com/svoisine" },
+      { label: "LinkedIn", href: "https://linkedin.com/in/svoisine" },
+    ],
+  },
+  {
+    name: "Aiden Goff",
+    role: "Frontend",
+    bio: "Aiden partnered with Seth to build out FareLocker’s user interface, and led the Google Gemini integration that brings the FareLocker agent to life on iMessage. A junior Computer Science student at the University of Georgia, he likes shipping interfaces that feel as smart as the systems behind them.",
+    photo: "/team/aiden.jpg",
+    links: [
+      { label: "GitHub", href: "https://github.com/mechaiden" },
+      { label: "LinkedIn", href: "https://linkedin.com/in/aidengoff" },
+    ],
+  },
 ];
