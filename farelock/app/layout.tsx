@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Background from "@/components/Background";
+import { SearchNavigationProvider } from "@/components/search/SearchNavigation";
 
 const siteName = "FareLocker";
 const title = "FareLocker: never overpay for a flight";
@@ -55,7 +56,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
         <Background />
-        {children}
+        {/*
+         * Above every route group so Header/SearchForm work on pages that
+         * sit outside (site)/ — notably app/not-found.tsx.
+         */}
+        <SearchNavigationProvider>{children}</SearchNavigationProvider>
       </body>
     </html>
   );
