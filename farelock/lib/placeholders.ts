@@ -26,6 +26,6 @@ export const TBD = {
     /** Market fare later, when the holder exercises. */
     fareLater: "$253",
     /** Payout minus fee for that drop ($75 − $10.06). */
-    saving: "$65",
+    saving: "$75",
   },
 } as const;

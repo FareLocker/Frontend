@@ -56,7 +56,7 @@ export default function WorkedExample() {
             ))}
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-foreground pt-5">
               <dt className="text-[0.7rem] uppercase tracking-[0.05em]">
-                You keep after the fee
+                Paid to You
               </dt>
               <dd className="text-[2.5rem] leading-none tracking-[-0.02em]">
                 {TBD.example.saving}
