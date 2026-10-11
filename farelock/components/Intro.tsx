@@ -7,12 +7,12 @@ export default function Intro() {
   return (
     <div>
       <Label className="mb-2">Fare protection</Label>
-      <h1 className="mb-8 text-[clamp(4rem,12vw,11rem)] leading-[0.9] tracking-[-0.02em] uppercase">
+      <h1 className="mb-8 max-md:mb-6 text-[clamp(4rem,12vw,11rem)] leading-[0.9] tracking-[-0.02em] uppercase">
         Never
         <br />
         overpay
       </h1>
-      <p className="mb-12 max-w-[600px] text-2xl font-light text-soft">
+      <p className="mb-12 max-w-[600px] text-2xl font-light text-soft max-md:mb-9 max-md:text-[1.2rem]">
         For a small fee, buy a FareLock on today&apos;s fare after you book. If
         the price drops, you cash out the difference. If it rises, you can rest
         assured knowing you already got the best price.

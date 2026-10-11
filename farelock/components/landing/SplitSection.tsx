@@ -20,7 +20,7 @@ export default function SplitSection({
 }) {
   return (
     <section id={id} className={ruleAbove ? "border-t border-line" : undefined}>
-      <Container className="grid gap-8 py-20 md:grid-cols-12 md:py-32">
+      <Container className="grid gap-8 py-20 max-md:py-16 md:grid-cols-12 md:py-32">
         <div className="md:col-span-3">
           <Label>{label}</Label>
         </div>

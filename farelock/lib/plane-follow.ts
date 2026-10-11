@@ -137,7 +137,9 @@ export function createPlaneFollow({ color, backdrop }: PlaneFollowOptions): Plan
 
   const step: PlaneFollow["step"] = (dt, target, pageWidth) => {
     time += dt;
-    const focal = pageWidth / 2 / VIEW;
+    // Sized as if the page were at least 700px wide, so on a phone the planes
+    // stay planes instead of shrinking to a few dots. Desktop is unaffected.
+    const focal = Math.max(pageWidth, 700) / 2 / VIEW;
     const spread = Math.min(1, pageWidth / FULL_WIDTH);
     for (const p of planes) {
       p.angle += p.spin * dt;
@@ -187,7 +189,9 @@ export function createPlaneFollow({ color, backdrop }: PlaneFollowOptions): Plan
     }
     brightness.fill(0);
     depth.fill(Infinity);
-    const focal = pageWidth / 2 / VIEW;
+    // Sized as if the page were at least 700px wide, so on a phone the planes
+    // stay planes instead of shrinking to a few dots. Desktop is unaffected.
+    const focal = Math.max(pageWidth, 700) / 2 / VIEW;
 
     /** Set a cell, unless something nearer is already there. */
     const plot = (gx: number, gy: number, z: number, value: number, bias = 0) => {

@@ -14,12 +14,18 @@ import ExerciseLock from "./ExerciseLock";
  * the lock is worth nothing, so the button is greyed out and the reason is
  * written underneath.
  */
-export default function HeldLockCard({ lock }: { lock: Lock }) {
+export default function HeldLockCard({
+  lock,
+  className = "",
+}: {
+  lock: Lock;
+  className?: string;
+}) {
   const reasonId = `exercise-unavailable-${lock.id}`;
   const currentFare = lock.fare;
 
   return (
-    <Card className="flex flex-col gap-5">
+    <Card className={`flex flex-col gap-5 ${className}`}>
       <h2 className="text-2xl tracking-[-0.03em]">Your lock</h2>
 
       <DetailList>

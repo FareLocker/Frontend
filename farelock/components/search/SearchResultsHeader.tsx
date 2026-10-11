@@ -29,10 +29,10 @@ export default function SearchResultsHeader({
   children: ReactNode;
 }) {
   return (
-    <section className="relative flex min-h-[240px] items-end overflow-hidden border-b border-line sm:min-h-[320px]">
+    <section className="relative flex min-h-[240px] items-end overflow-hidden border-b border-line max-md:min-h-[230px] md:min-h-[320px]">
       {/* The flight path was designed for the tall landing hero; flatten it. */}
       <PlaneFlyby flatten={0.39} horizon={0.6} textStops={HEADER_TEXT} />
-      <Container className="relative flex flex-col gap-3 pt-12 pb-10">
+      <Container className="relative flex flex-col gap-3 pt-12 pb-10 max-md:gap-2.5 max-md:pt-10 max-md:pb-7">
         <Label>Search results</Label>
         {children}
       </Container>
@@ -53,7 +53,7 @@ export function SearchHeading({
         {title}
       </h1>
       {/* Keeps its line even when empty, so the heading doesn't shift. */}
-      <p className="min-h-[1.75rem] text-xl font-light text-soft">{summary}</p>
+      <p className="min-h-[1.75rem] text-xl font-light text-soft max-md:text-[1.05rem]">{summary}</p>
     </>
   );
 }

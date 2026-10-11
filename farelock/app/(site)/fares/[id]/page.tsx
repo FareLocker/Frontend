@@ -110,15 +110,18 @@ async function FareTrade({
       <FareTradeLayout
         main={
           <>
-            <FareTradeHero fare={fare} lock={lock} />
-            {lock ? <LockTimelineCard fare={fare} lock={lock} daysAway={daysAway} /> : null}
+            <FareTradeHero fare={fare} lock={lock} className="max-md:order-1" />
+            {lock ? (
+              <LockTimelineCard fare={fare} lock={lock} daysAway={daysAway} className="max-md:order-4" />
+            ) : null}
             {/* Side by side when there is room; one card alone takes the row. */}
-            <div className="flex flex-wrap gap-5 *:flex-[1_1_320px]">
-              <FlightDetailsCard fare={fare} />
+            <div className="flex flex-wrap gap-5 *:flex-[1_1_320px] max-md:contents">
+              <FlightDetailsCard fare={fare} className="max-md:order-5" />
               {lock ? (
-                <LockTermsCard lock={lock} />
+                <LockTermsCard lock={lock} className="max-md:order-6" />
               ) : fare.lock ? (
-                <FeeDriversCard fare={fare} daysAway={daysAway} />
+                /* Deliberately left off phones (see MOBILE.md, rule 5). */
+                <FeeDriversCard fare={fare} daysAway={daysAway} className="max-md:hidden" />
               ) : null}
             </div>
           </>
@@ -130,10 +133,16 @@ async function FareTrade({
               forSale={fare.lock !== null}
               daysAway={daysAway}
               fareCents={fare.fare.amount}
+              className="max-md:order-2"
             />
             <LockColumn fare={fare} lock={lock} />
-            <FareRangeCards fare={fare} daysAway={daysAway} lockedFare={lock?.lockedFare} />
-            {lock ? <LockHelpCard /> : null}
+            <FareRangeCards
+              fare={fare}
+              daysAway={daysAway}
+              lockedFare={lock?.lockedFare}
+              className="max-md:order-3"
+            />
+            {lock ? <LockHelpCard className="max-md:order-7" /> : null}
           </>
         }
       />
@@ -141,14 +150,21 @@ async function FareTrade({
   );
 }
 
-/** The main card of the right-hand column: buy, hold, or the record. */
+/**
+ * The main card of the right-hand column: buy, hold, or the record.
+ *
+ * On a phone the page is one column ordered by `order-*` (see
+ * FareTradeLayout): hero 1, status and this card 2, range 3, timeline 4,
+ * flight details 5, terms 6, notes 7. So the action sits right under the
+ * price, and "If you don't exercise" moves down to the notes.
+ */
 function LockColumn({ fare, lock }: { fare: FareDetail; lock: Lock | null }) {
-  if (!lock) return <LockTicket fare={fare} />;
-  if (lock.status !== "open") return <LockOutcomeCard lock={lock} />;
+  if (!lock) return <LockTicket fare={fare} className="max-md:order-2" />;
+  if (lock.status !== "open") return <LockOutcomeCard lock={lock} className="max-md:order-2" />;
   return (
     <>
-      <HeldLockCard lock={lock} />
-      <AutoExerciseCard lock={lock} />
+      <HeldLockCard lock={lock} className="max-md:order-2" />
+      <AutoExerciseCard lock={lock} className="max-md:order-7" />
     </>
   );
 }

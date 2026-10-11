@@ -18,17 +18,19 @@ export default function LockTimelineCard({
   fare,
   lock,
   daysAway,
+  className = "",
 }: {
   fare: FareDetail;
   lock: Lock;
   /** Whole days until the flight departs. */
   daysAway: number;
+  className?: string;
 }) {
   const open = lock.status === "open";
   const crossing = lastCrossing(fare.history, lock);
 
   return (
-    <Card className="flex flex-col gap-5">
+    <Card className={`flex flex-col gap-5 ${className}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
         <h2 className={`${cardHeadingClass} pb-0`}>FareLock timeline</h2>
         <p className={`text-[13px] font-semibold ${open ? "" : "text-muted"}`}>

@@ -67,18 +67,18 @@ export default function LockPurchasePanel({
           {strikeCents !== undefined ? (
             <input type="hidden" name="strikeCents" value={strikeCents} />
           ) : null}
-          <label className="flex cursor-pointer items-start gap-3 text-[13px] leading-normal text-soft">
+          <label className="flex cursor-pointer items-start gap-3 text-[13px] leading-normal text-soft max-md:min-h-11 max-md:items-center max-md:text-[14px]">
             <input
               type="checkbox"
               name="terms"
               required
-              className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-accent"
+              className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-accent max-md:mt-0 max-md:h-5 max-md:w-5"
             />
             <span>
               I have read the{" "}
               <Link
                 href="/lock-terms"
-                className="text-foreground underline underline-offset-2"
+                className="text-foreground underline underline-offset-2 max-md:inline-flex max-md:min-h-11 max-md:items-center"
               >
                 lock terms
               </Link>

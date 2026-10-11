@@ -10,11 +10,17 @@ import { cardHeadingClass } from "./FlightDetailsCard";
  * and what it cost. It takes the place of "What drives this fee" once they
  * hold a lock, because the fee is already paid.
  */
-export default function LockTermsCard({ lock }: { lock: Lock }) {
+export default function LockTermsCard({
+  lock,
+  className = "",
+}: {
+  lock: Lock;
+  className?: string;
+}) {
   const open = lock.status === "open";
 
   return (
-    <Card className="flex flex-col">
+    <Card className={`flex flex-col ${className}`}>
       <h2 className={cardHeadingClass}>FareLock terms</h2>
       <DetailList>
         <DetailRow label="Lock ID">{lock.id}</DetailRow>

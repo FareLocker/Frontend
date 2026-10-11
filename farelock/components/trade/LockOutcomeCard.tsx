@@ -10,12 +10,18 @@ import type { Lock } from "@/types/lock";
  * member's lock on this fare is over. It is a record only. There is nothing
  * to buy or exercise here.
  */
-export default function LockOutcomeCard({ lock }: { lock: Lock }) {
+export default function LockOutcomeCard({
+  lock,
+  className = "",
+}: {
+  lock: Lock;
+  className?: string;
+}) {
   const expired = lock.status === "expired";
   const settlementFare = lock.fare;
 
   return (
-    <Card className="flex flex-col gap-5">
+    <Card className={`flex flex-col gap-5 ${className}`}>
       <h2 className="text-2xl tracking-[-0.03em]">How it ended</h2>
 
       <DetailList>

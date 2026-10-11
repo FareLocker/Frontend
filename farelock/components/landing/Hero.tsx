@@ -21,9 +21,9 @@ const HERO_TEXT: TextStop[] = [
 
 export default function Hero() {
   return (
-    <section className="relative flex min-h-[34rem] items-center overflow-hidden lg:min-h-[max(34rem,calc(100svh-5.75rem))]">
+    <section className="relative flex min-h-[34rem] items-center overflow-hidden max-md:min-h-[600px] lg:min-h-[max(34rem,calc(100svh-5.75rem))]">
       <PlaneFlyby textStops={HERO_TEXT} />
-      <Container className="relative py-16">
+      <Container className="relative py-16 max-md:py-12">
         <Intro />
       </Container>
     </section>

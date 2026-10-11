@@ -36,9 +36,9 @@ export default function LockList({ locks }: { locks: AccountLock[] }) {
         <li key={lock.id} className="border-t border-foreground/10">
           <Link
             href={`/fares/${lock.fareId}`}
-            className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+            className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4 max-md:relative max-md:min-h-11 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
           >
-            <div className="min-w-0">
+            <div className="min-w-0 max-md:pr-24">
               <p className="text-[15px] font-semibold tracking-[-0.01em]">
                 {lock.origin} → {lock.destination}
               </p>
@@ -46,10 +46,10 @@ export default function LockList({ locks }: { locks: AccountLock[] }) {
                 {lock.flightNumber} · {formatDate(lock.departs)}
               </p>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 max-md:w-full">
               <LabelValue label="Locked fare">{formatMoney(lock.lockedFare)}</LabelValue>
               <LabelValue label="Fee paid">{formatMoney(lock.fee)}</LabelValue>
-              <span className="rounded-full border border-foreground/20 px-3 py-1 text-[11px] uppercase tracking-[0.05em]">
+              <span className="rounded-full border border-foreground/20 px-3 py-1 text-[11px] uppercase tracking-[0.05em] max-md:absolute max-md:top-4 max-md:right-0">
                 {statusLabel[lock.status]}
               </span>
             </div>

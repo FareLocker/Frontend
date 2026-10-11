@@ -18,11 +18,14 @@ export default function FareRangeCards({
   fare,
   daysAway,
   lockedFare,
+  className = "",
 }: {
   fare: FareDetail;
   /** Whole days until the flight departs. Negative once it has left. */
   daysAway: number;
   lockedFare?: Money;
+  /** Added to both of its blocks (it renders two). */
+  className?: string;
 }) {
   if (fare.history.length < 2) return null;
   const departed = daysAway < 0;
@@ -38,7 +41,7 @@ export default function FareRangeCards({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-5">
+      <div className={`grid grid-cols-2 gap-5 max-md:gap-3.5 ${className}`}>
         <Card size="md" className="flex flex-col gap-3.5">
           <h3 className={caption}>Lowest tracked</h3>
           <p className="text-[1.6rem] leading-none font-light tracking-[-0.04em] tabular-nums">
@@ -53,7 +56,7 @@ export default function FareRangeCards({
         </Card>
       </div>
 
-      <Card tone="raised" size="md" className="flex flex-col gap-3.5">
+      <Card tone="raised" size="md" className={`flex flex-col gap-3.5 ${className}`}>
         <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
           <h3 className={caption}>
             {departed ? "Where the final fare sat" : "Where today\u2019s fare sits"}

@@ -7,15 +7,17 @@ import SearchBar from "./SearchForm";
 
 /*
  * Pinned to the top on desktop, where it fits on one row. On smaller screens
- * it wraps to two or three rows, so it scrolls away instead of covering the page.
+ * it wraps, so it scrolls away instead of covering the page. On a phone it is
+ * two rows: the logo and Log in (or the menu button), then the search bar.
+ * `max-md:relative` anchors the phone menu panel under it.
  */
 export default function Header() {
   return (
-    <header className="z-50 border-b border-line bg-background/80 backdrop-blur-md lg:sticky lg:top-0">
-      <Container className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 py-5">
+    <header className="z-50 border-b border-line bg-background/80 backdrop-blur-md max-md:relative lg:sticky lg:top-0">
+      <Container className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 py-5 max-md:gap-y-3.5 max-md:pt-3.5 max-md:pb-4">
         <Link
           href="/"
-          className="shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground"
+          className="shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground max-md:flex max-md:min-h-11 max-md:items-center"
         >
           <Logo className="h-5 w-auto sm:h-6" />
         </Link>

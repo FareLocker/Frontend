@@ -37,7 +37,7 @@ export default function CheckoutPage({ searchParams }: PageProps<"/checkout">) {
     <>
       <CheckoutHeader current={2} />
       <main className="flex-1">
-        <Container className="flex flex-col gap-6 pt-10 pb-20">
+        <Container className="flex flex-col gap-6 pt-10 pb-20 max-md:gap-5 max-md:pt-8 max-md:pb-14">
           <Suspense fallback={<CheckoutSkeleton />}>
             <Checkout searchParams={searchParams} />
           </Suspense>
@@ -101,11 +101,16 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
         </h1>
       </header>
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="flex min-w-0 flex-col gap-5">
-          <Card className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+      {/*
+       * Phone order (below md): flight, Your lock, Due today, What happens next,
+       * so the pay button comes before the explanation. The left column
+       * dissolves (`max-md:contents`) and `max-md:order-*` places the cards.
+       */}
+      <div className="grid items-start gap-5 max-md:flex max-md:flex-col max-md:items-stretch lg:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="flex min-w-0 flex-col gap-5 max-md:contents">
+          <Card className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 max-md:order-1 max-md:flex-col max-md:items-start max-md:gap-3.5 max-md:p-5">
             <div className="min-w-0">
-              <h2 className="text-[1.35rem] leading-tight tracking-[-0.03em]">
+              <h2 className="text-[1.35rem] leading-tight tracking-[-0.03em] max-md:text-[1.2rem] max-md:[overflow-wrap:anywhere]">
                 {fare.depart.city} ({fare.depart.airportCode}) to {fare.arrive.city} (
                 {fare.arrive.airportCode})
               </h2>
@@ -120,7 +125,7 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
             </PillLink>
           </Card>
 
-          <Card>
+          <Card className="max-md:order-2">
             <h2 className={cardHeadingClass}>Your lock</h2>
             <DetailList>
               <DetailRow label="Locked fare">{formatMoney(lockedFare)}</DetailRow>
@@ -135,9 +140,9 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
             </DetailList>
           </Card>
 
-          <Card>
+          <Card className="max-md:order-4">
             <h2 className={cardHeadingClass}>What happens next</h2>
-            <dl>
+            <dl className="max-md:flex max-md:flex-col max-md:gap-2.5">
               <Outcome when="If the fare goes down">
                 Exercise the lock any time before the flight departs. The
                 difference goes into your wallet, up to half the locked fare.
@@ -154,7 +159,7 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
           </Card>
         </div>
 
-        <aside aria-label="Payment" className="min-w-0">
+        <aside aria-label="Payment" className="min-w-0 max-md:order-3">
           <Card className="flex flex-col gap-5">
             <h2 className="text-2xl tracking-[-0.03em]">Due today</h2>
             <DetailList>
@@ -187,14 +192,17 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
   );
 }
 
-/** One "if this, then that" pair in the "What happens next" card. */
+/**
+ * One "if this, then that" pair in the "What happens next" card. On a phone
+ * each pair is its own small black panel.
+ */
 function Outcome({ when, children }: { when: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-foreground/10 py-[13px] last:pb-0">
-      <dt className="w-[170px] shrink-0 text-[11px] leading-[20px] uppercase tracking-[0.1em] text-muted">
+    <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-foreground/10 py-[13px] last:pb-0 max-md:flex-col max-md:gap-1.5 max-md:rounded-2xl max-md:border-t-0 max-md:bg-pitch max-md:px-4 max-md:py-4 max-md:last:pb-4">
+      <dt className="w-[170px] shrink-0 text-[11px] leading-[20px] uppercase tracking-[0.1em] text-muted max-md:w-auto max-md:text-[14px] max-md:font-semibold max-md:tracking-normal max-md:text-foreground max-md:normal-case">
         {when}
       </dt>
-      <dd className="min-w-0 flex-[1_1_260px] text-[13px] leading-normal text-soft">{children}</dd>
+      <dd className="min-w-0 flex-[1_1_260px] text-[13px] leading-normal text-soft max-md:flex-none max-md:text-[14px]">{children}</dd>
     </div>
   );
 }
@@ -209,12 +217,12 @@ function CheckoutSkeleton() {
         <div className={`${block} h-3 w-28 rounded-full`} />
         <div className={`${block} h-12 w-80 max-w-full rounded-2xl`} />
       </div>
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="flex flex-col gap-5">
-          <div className={`${block} h-28 rounded-[2rem]`} />
-          <div className={`${block} h-60 rounded-[2rem]`} />
+      <div className="grid items-start gap-5 max-md:flex max-md:flex-col max-md:items-stretch lg:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="flex flex-col gap-5 max-md:contents">
+          <div className={`${block} h-28 rounded-[2rem] max-md:order-1 max-md:rounded-3xl`} />
+          <div className={`${block} h-60 rounded-[2rem] max-md:order-2 max-md:rounded-3xl`} />
         </div>
-        <div className={`${block} h-[460px] rounded-[2rem]`} />
+        <div className={`${block} h-[460px] rounded-[2rem] max-md:order-3 max-md:rounded-3xl`} />
       </div>
     </div>
   );

@@ -31,15 +31,16 @@ export default function AuthHeader({
 }) {
   return (
     <header data-own-header className="z-50 border-b border-line bg-background/80 backdrop-blur-md lg:sticky lg:top-0">
-      <Container className="flex min-h-[5.5rem] flex-wrap items-center justify-between gap-x-8 gap-y-4 py-5">
+      <Container className="flex min-h-[5.5rem] flex-wrap items-center justify-between gap-x-8 gap-y-4 py-5 max-md:min-h-0 max-md:flex-nowrap max-md:pt-3.5 max-md:pb-4">
         <Link
           href="/"
-          className="shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground"
+          className="shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground max-md:flex max-md:min-h-11 max-md:items-center"
         >
           <Logo className="h-5 w-auto sm:h-6" />
         </Link>
         <nav aria-label="Account" className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <span className="text-[0.85rem] text-muted">{prompt}</span>
+          {/* Phone: one row. The same question and link sit under the form. */}
+          <span className="text-[0.85rem] text-muted max-md:hidden">{prompt}</span>
           <PillLink href={href}>{action}</PillLink>
         </nav>
       </Container>

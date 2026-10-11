@@ -40,7 +40,7 @@ export default function TransactionTypeFilter({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3 max-md:flex-col max-md:items-stretch max-md:gap-2">
       <label htmlFor={id} className="text-[11px] uppercase tracking-[0.1em] text-muted">
         Transaction type
       </label>
@@ -50,7 +50,7 @@ export default function TransactionTypeFilter({
           value={current ?? ""}
           onChange={(event) => choose(event.target.value)}
           aria-busy={pending}
-          className={`h-11 cursor-pointer appearance-none rounded-full border border-foreground/30 bg-background pr-[42px] pl-[18px] text-[13px] font-medium transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
+          className={`h-11 cursor-pointer appearance-none rounded-full border border-foreground/30 bg-background pr-[42px] pl-[18px] text-[13px] font-medium max-md:h-12 max-md:w-full max-md:text-base transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ${
             pending ? "opacity-60" : ""
           }`}
         >
@@ -69,7 +69,7 @@ export default function TransactionTypeFilter({
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="pointer-events-none absolute top-4 right-[18px] h-3 w-3"
+          className="pointer-events-none absolute top-4 right-[18px] h-3 w-3 max-md:top-[18px]"
         >
           <path d="M2 4l4 4 4-4" />
         </svg>

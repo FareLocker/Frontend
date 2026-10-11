@@ -7,9 +7,15 @@ export const cardHeadingClass =
   "pb-3.5 text-[1.1rem] font-semibold tracking-[-0.02em]";
 
 /** The facts about the flight itself. */
-export default function FlightDetailsCard({ fare }: { fare: FareDetail }) {
+export default function FlightDetailsCard({
+  fare,
+  className = "",
+}: {
+  fare: FareDetail;
+  className?: string;
+}) {
   return (
-    <Card>
+    <Card className={className}>
       <h2 className={cardHeadingClass}>Flight details</h2>
       <DetailList>
         <DetailRow label="Departs">

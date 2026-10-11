@@ -18,6 +18,7 @@ export default function LockStatusCard({
   forSale = false,
   daysAway = 0,
   fareCents = 0,
+  className = "",
 }: {
   /** The member's lock on this fare, if they have one. */
   lock?: Lock | null;
@@ -27,6 +28,7 @@ export default function LockStatusCard({
   daysAway?: number;
   /** Live market fare in cents; when it changes the quote timer restarts. */
   fareCents?: number;
+  className?: string;
 }) {
   const { title, detail, icon } = describe(lock, forSale, daysAway, fareCents);
 
@@ -35,7 +37,7 @@ export default function LockStatusCard({
       tone="raised"
       size="md"
       label="Lock status"
-      className="flex items-center justify-between gap-4"
+      className={`flex items-center justify-between gap-4 ${className}`}
     >
       <div className="min-w-0">
         <p className="text-[1.1rem] font-semibold tracking-[-0.02em]">{title}</p>

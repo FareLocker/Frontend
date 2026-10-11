@@ -27,10 +27,16 @@ const QUOTE_DEBOUNCE_MS = 350;
  * FareLocker sells the lock only, never the flight, so there is no
  * "book" button here.
  */
-export default function LockTicket({ fare }: { fare: FareDetail }) {
+export default function LockTicket({
+  fare,
+  className = "",
+}: {
+  fare: FareDetail;
+  className?: string;
+}) {
   if (!fare.lock) {
     return (
-      <Card className="flex flex-col gap-5">
+      <Card className={`flex flex-col gap-5 ${className}`}>
         <h2 className="text-2xl tracking-[-0.03em]">Lock this fare</h2>
         <p className="text-[13px] leading-normal text-muted">
           We can&rsquo;t offer a lock on this fare right now. Other flights on
@@ -43,15 +49,17 @@ export default function LockTicket({ fare }: { fare: FareDetail }) {
     );
   }
 
-  return <LockTicketForm fare={fare} initialFee={fare.lock.fee} />;
+  return <LockTicketForm fare={fare} initialFee={fare.lock.fee} className={className} />;
 }
 
 function LockTicketForm({
   fare,
   initialFee,
+  className = "",
 }: {
   fare: FareDetail;
   initialFee: Money;
+  className?: string;
 }) {
   const inputId = useId();
   const currency = fare.fare.currency;
@@ -232,7 +240,7 @@ function LockTicketForm({
       : `/checkout?fare=${fare.id}&strike=${strikeCents}`;
 
   return (
-    <Card className="flex flex-col gap-5">
+    <Card className={`flex flex-col gap-5 ${className}`}>
       <h2 className="text-2xl tracking-[-0.03em]">Lock this fare</h2>
 
       <DetailList>
@@ -255,7 +263,7 @@ function LockTicketForm({
               value={draft}
               onChange={(event) => setDraft(sanitizeDraft(event.target.value))}
               aria-invalid={quoteError ? true : undefined}
-              className="h-9 w-[7.5rem] rounded-xl border border-foreground/15 bg-pitch px-3 text-right text-[13px] font-semibold tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+              className="h-9 w-[7.5rem] rounded-xl border border-foreground/15 bg-pitch px-3 text-right text-[13px] font-semibold tabular-nums max-md:h-11 max-md:text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
             />
           </div>
         </div>

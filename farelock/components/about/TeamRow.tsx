@@ -23,7 +23,7 @@ export default function TeamRow({
 
   return (
     <article
-      className={`flex flex-wrap items-center gap-x-[72px] gap-y-10 py-[72px] ${
+      className={`flex flex-wrap items-center gap-x-[72px] gap-y-10 py-[72px] max-md:gap-y-7 max-md:py-12 ${
         photoOnRight ? "flex-row-reverse" : ""
       } ${index > 0 ? "border-t border-line" : ""}`}
     >
@@ -68,7 +68,7 @@ export default function TeamRow({
 /** The 4:5 portrait, or a grey outline of a person until there is one. */
 function Headshot({ member }: { member: TeamMember }) {
   const frame =
-    "relative aspect-[4/5] w-[380px] max-w-full shrink-0 overflow-hidden rounded-[2rem] bg-card";
+    "relative aspect-[4/5] w-[380px] max-w-full shrink-0 overflow-hidden rounded-[2rem] bg-card max-md:w-[220px] max-md:rounded-3xl";
 
   if (member.photo) {
     return (
@@ -78,7 +78,7 @@ function Headshot({ member }: { member: TeamMember }) {
           alt={`Portrait of ${member.name}`}
           fill
           // 380px wide beside the text; the full column once they stack.
-          sizes="(min-width: 480px) 380px, 100vw"
+          sizes="(min-width: 768px) 380px, 220px"
           className="object-cover"
         />
       </div>

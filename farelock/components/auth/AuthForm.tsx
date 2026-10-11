@@ -67,7 +67,7 @@ export default function AuthForm({
 
       <p className="text-center text-[13px] text-muted">
         {footer.text}{" "}
-        <Link href={footer.href} className="text-foreground underline underline-offset-4">
+        <Link href={footer.href} className="text-foreground underline underline-offset-4 max-md:inline-flex max-md:min-h-11 max-md:items-center">
           {footer.linkLabel}
         </Link>
       </p>
