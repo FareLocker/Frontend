@@ -102,10 +102,10 @@ async function FareTrade({
       {/* Keep the live fare and history current while this page is open. */}
       {!ended ? <FarePoller /> : null}
       <Link
-        href={ended ? "/locks" : query ? `/search?q=${encodeURIComponent(query)}` : "/search"}
+        href={ended ? "/wallet" : query ? `/search?q=${encodeURIComponent(query)}` : "/search"}
         className="inline-flex min-h-11 items-center self-start rounded-full bg-foreground/10 px-4 text-xs font-medium transition-colors duration-200 hover:bg-foreground/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
       >
-        {ended ? "Back to my locks" : "Back to search"}
+        {ended ? "Back to wallet" : "Back to search"}
       </Link>
       <FareTradeLayout
         main={

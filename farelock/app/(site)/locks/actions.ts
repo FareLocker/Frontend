@@ -17,9 +17,10 @@ export async function exerciseLock(
   const lockId = String(formData.get("lockId") ?? "");
   const requestedReturnTo = String(formData.get("returnTo") ?? "");
   const returnTo =
-    requestedReturnTo === "/locks" || /^\/fares\/[a-z0-9-]+$/i.test(requestedReturnTo)
+    requestedReturnTo === "/wallet" ||
+    /^\/fares\/[a-z0-9-]+$/i.test(requestedReturnTo)
       ? requestedReturnTo
-      : "/locks";
+      : "/wallet";
   if (!/^\d+$/.test(lockId)) return { error: "This FareLock reference is invalid." };
 
   try {
@@ -52,7 +53,6 @@ export async function exerciseLock(
     };
   }
 
-  revalidatePath("/locks");
   revalidatePath("/wallet");
   revalidatePath("/account");
   if (returnTo.startsWith("/fares/")) revalidatePath(returnTo);

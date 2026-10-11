@@ -62,7 +62,6 @@ export async function buyLock(
       return { error: "Your wallet balance is too low for this FareLock." };
     }
     if (code === "lock_already_open") {
-      revalidatePath("/locks");
       revalidatePath(`/fares/${fareId}`);
       redirect(`/fares/${encodeURIComponent(fareId)}`);
     }
@@ -77,7 +76,6 @@ export async function buyLock(
     };
   }
 
-  revalidatePath("/locks");
   revalidatePath(`/fares/${fareId}`);
   revalidatePath("/wallet");
   revalidatePath("/account");

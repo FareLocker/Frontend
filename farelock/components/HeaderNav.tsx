@@ -9,7 +9,7 @@ const navClass = "flex flex-wrap items-center gap-2 lg:gap-4";
  * The header buttons. Which set shows depends on whether someone is signed in:
  *
  *   signed out: Log in
- *   signed in:  My locks, Add funds, Account
+ *   signed in:  Wallet, Account
  */
 export default async function HeaderNav() {
   const user = await getCurrentUser();
@@ -18,7 +18,6 @@ export default async function HeaderNav() {
     <nav aria-label="Main" className={navClass}>
       {user ? (
         <>
-          <PillLink href="/locks">My FareLocks</PillLink>
           <PillLink href="/wallet">Wallet</PillLink>
           <UserButton />
         </>

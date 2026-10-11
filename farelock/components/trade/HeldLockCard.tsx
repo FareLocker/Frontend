@@ -49,7 +49,7 @@ export default function HeldLockCard({ lock }: { lock: Lock }) {
         <>
           <ExerciseLock
             summary={exerciseSummary(lock)}
-            returnTo={lock.fareId ? `/fares/${lock.fareId}` : "/locks"}
+            returnTo={lock.fareId ? `/fares/${lock.fareId}` : "/wallet"}
           />
           <p className="text-center text-xs leading-normal font-medium text-muted">
             The fare is below your locked fare

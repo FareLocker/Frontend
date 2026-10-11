@@ -48,12 +48,12 @@ export default function ExerciseLock({
   summary,
   size = "lg",
   label = "Exercise lock",
-  returnTo = "/locks",
+  returnTo = "/wallet",
 }: {
   summary: ExerciseSummary;
   /**
    * "lg": the full-width main button, as on the fare page.
-   * "md": a smaller one that sits in a row of buttons, as on My locks.
+   * "md": a smaller one that sits in a row of buttons.
    */
   size?: "lg" | "md";
   /** The opening button's words. */
