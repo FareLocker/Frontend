@@ -114,7 +114,7 @@ export default function FareTradeChart({
     <canvas
       ref={canvasRef}
       aria-hidden
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-[66%] w-full opacity-90"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-[66%] w-full opacity-90 max-md:h-[56%]"
     />
   );
 }

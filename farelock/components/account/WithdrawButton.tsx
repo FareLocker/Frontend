@@ -58,9 +58,9 @@ export default function WithdrawButton({
         onClick={(event) => {
           if (event.target === event.currentTarget) event.currentTarget.close();
         }}
-        className="m-auto max-h-[calc(100dvh-3rem)] w-[min(440px,calc(100vw-3rem))] overflow-y-auto rounded-[2rem] border border-foreground/15 bg-card text-foreground backdrop:bg-pitch/60 backdrop:backdrop-blur-sm"
+        className="m-auto max-h-[calc(100dvh-3rem)] w-[min(440px,calc(100vw-3rem))] overflow-y-auto rounded-[2rem] border border-foreground/15 bg-card text-foreground backdrop:bg-pitch/60 backdrop:backdrop-blur-sm max-md:mx-0 max-md:mt-auto max-md:mb-0 max-md:max-h-[85dvh] max-md:w-full max-md:max-w-full max-md:rounded-none max-md:rounded-t-3xl max-md:border-x-0 max-md:border-b-0"
       >
-        <div className="flex flex-col gap-5 p-7">
+        <div className="flex flex-col gap-5 p-7 max-md:px-5 max-md:pt-6 max-md:pb-[max(16px,env(safe-area-inset-bottom))]">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-col gap-2">
               <h2 id={titleId} className="text-2xl tracking-[-0.03em]">

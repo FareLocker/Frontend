@@ -34,7 +34,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
         type="search"
         autoComplete="off"
         placeholder="Search flights, airlines, or airports"
-        className="h-full min-w-0 flex-1 bg-transparent text-[0.95rem] outline-none placeholder:text-[#a6a6a6]"
+        className="h-full min-w-0 flex-1 bg-transparent text-[0.95rem] outline-none placeholder:text-[#a6a6a6] max-md:text-base"
       />
     </form>
   );

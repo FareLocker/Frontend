@@ -12,13 +12,15 @@ import { cardHeadingClass } from "./FlightDetailsCard";
 export default function FeeDriversCard({
   fare,
   daysAway,
+  className = "",
 }: {
   fare: FareDetail;
   /** Whole days until the flight departs. */
   daysAway: number;
+  className?: string;
 }) {
   return (
-    <Card className="flex flex-col">
+    <Card className={`flex flex-col ${className}`}>
       <h2 className={cardHeadingClass}>What drives this fee</h2>
       <DetailList>
         <DetailRow label="How much this fare moves">

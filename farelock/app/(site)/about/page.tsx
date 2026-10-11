@@ -24,16 +24,16 @@ export default function AboutPage() {
 
       <section
         aria-labelledby="about-title"
-        className="flex min-h-[40rem] items-center border-b border-line"
+        className="flex min-h-[40rem] items-center border-b border-line max-md:min-h-[460px]"
       >
         {/* items-start: each line is only as wide as its words, so the planes
             dim behind the heading itself and not the whole width of the page. */}
-        <Container className="flex flex-col items-start gap-6 py-20">
+        <Container className="flex flex-col items-start gap-6 py-20 max-md:gap-5 max-md:py-14">
           <Label>About</Label>
           <h1
             id="about-title"
             data-plane-quiet
-            className="text-[clamp(4rem,10vw,9rem)] leading-[0.9] tracking-[-0.02em] uppercase"
+            className="text-[clamp(4rem,10vw,9rem)] leading-[0.9] tracking-[-0.02em] uppercase max-md:text-[clamp(3.25rem,17vw,4.5rem)]"
           >
             Meet
             <br />

@@ -26,13 +26,15 @@ const messageClass = "border-t border-foreground/10 pt-5 text-[13px] text-soft";
  */
 export default function ActivityCard({
   type,
+  className = "",
 }: {
   /** Show only this type; null shows everything. */
   type: TransactionType | null;
+  className?: string;
 }) {
   return (
-    <Card className="flex flex-col gap-1.5">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-3.5">
+    <Card className={`flex flex-col gap-1.5 ${className}`}>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-3.5 max-md:flex-col max-md:items-stretch max-md:gap-4">
         <h2 className={`${cardHeadingClass} pb-0`}>Activity</h2>
         <TransactionTypeFilter current={type} />
       </div>
@@ -66,8 +68,32 @@ async function ActivityRows({ type }: { type: TransactionType | null }) {
   }
 
   return (
-    // A wide table scrolls sideways inside the card on a narrow screen.
-    <div className="overflow-x-auto">
+    <>
+    {/*
+     * Phone: one block per transaction (type and amount, then what happened,
+     * then the date). From md up, the table below. Same rows, same data; only
+     * one of the two is ever displayed.
+     */}
+    <ul className="border-t border-foreground/10 md:hidden">
+      {result.transactions.map((entry) => (
+        <li key={entry.id} className="flex flex-col gap-2 border-b border-foreground/10 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <span className="rounded-full border border-foreground/20 px-3 py-1 text-[11px] whitespace-nowrap uppercase tracking-[0.05em]">
+              {entry.type ? transactionTypeLabel[entry.type] : unknownTransactionTypeLabel}
+            </span>
+            <span className="text-[15px] font-semibold whitespace-nowrap tabular-nums">
+              {formatSigned(entry.amount)}
+            </span>
+          </div>
+          <p className="text-[13px] font-semibold">{entry.description}</p>
+          <p className="text-[13px] text-muted">
+            <LocalDate iso={entry.createdAt} />
+          </p>
+        </li>
+      ))}
+    </ul>
+    {/* A wide table scrolls sideways inside the card on a narrow screen. */}
+    <div className="overflow-x-auto max-md:hidden">
       <table className="w-full min-w-[520px] border-collapse text-left text-[13px]">
         <thead>
           <tr>
@@ -97,6 +123,7 @@ async function ActivityRows({ type }: { type: TransactionType | null }) {
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 
@@ -108,7 +135,7 @@ function ActivityRowsSkeleton() {
       className="flex animate-pulse flex-col border-t border-foreground/10 motion-reduce:animate-none"
     >
       {[0, 1, 2, 3].map((row) => (
-        <div key={row} className="flex items-center gap-6 border-b border-foreground/10 py-4">
+        <div key={row} className="flex items-center gap-6 border-b border-foreground/10 py-4 max-md:flex-wrap max-md:gap-x-4 max-md:gap-y-2.5">
           <span className="h-3.5 w-20 rounded-full bg-foreground/[0.06]" />
           <span className="h-3.5 w-16 rounded-full bg-foreground/[0.06]" />
           <span className="h-3.5 flex-1 rounded-full bg-foreground/[0.06]" />

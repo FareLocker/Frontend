@@ -12,9 +12,15 @@ const body = "text-[13px] leading-normal text-muted";
  * exercised for them when the flight departs, so doing nothing never loses
  * a payout.
  */
-export function AutoExerciseCard({ lock }: { lock: Lock }) {
+export function AutoExerciseCard({
+  lock,
+  className = "",
+}: {
+  lock: Lock;
+  className?: string;
+}) {
   return (
-    <Card size="md" className="flex flex-col gap-2">
+    <Card size="md" className={`flex flex-col gap-2 ${className}`}>
       <h2 className={heading}>If you don&rsquo;t exercise</h2>
       <p className={body}>
         When the flight departs, {formatDate(lock.departs)} at{" "}
@@ -27,9 +33,9 @@ export function AutoExerciseCard({ lock }: { lock: Lock }) {
 }
 
 /** "Need help?": where a member with a lock goes with a question. */
-export function LockHelpCard() {
+export function LockHelpCard({ className = "" }: { className?: string }) {
   return (
-    <Card size="md" className="flex flex-col gap-2">
+    <Card size="md" className={`flex flex-col gap-2 ${className}`}>
       <h2 className={heading}>Need help?</h2>
       <p className={body}>Questions about this lock or a payout.</p>
       {/* LATER (support): /support has not been built. */}

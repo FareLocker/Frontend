@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import AuthCard from "@/components/auth/AuthCard";
 import AuthForm, { AuthField } from "@/components/auth/AuthForm";
 import AuthHeader from "@/components/auth/AuthHeader";
-import GoogleButton from "@/components/auth/GoogleButton";
 import PasswordField from "@/components/auth/PasswordField";
 // The team's actions stay in app/login/. That folder has no page.tsx any
 // more, so it is not a route and doesn't clash with this /login page.
@@ -22,7 +21,7 @@ export default function LoginPage() {
     <>
       <AuthHeader prompt="Don't have an account?" href="/register" action="Create account" />
       {/* Tall enough to fill the first screen under the header. */}
-      <main className="flex flex-1 items-center justify-center px-5 py-12 sm:px-8 lg:min-h-[max(40rem,calc(100svh-5.6rem))]">
+      <main className="flex flex-1 items-center justify-center px-5 py-12 max-md:px-8 max-md:py-8 sm:px-8 lg:min-h-[max(40rem,calc(100svh-5.6rem))]">
         <AuthCard title="Welcome back" intro="See your locks and what they are worth.">
           <AuthForm
             action={logIn}
@@ -30,8 +29,6 @@ export default function LoginPage() {
             pendingLabel="Logging in…"
             footer={{ text: "New to FareLocker?", linkLabel: "Create an account", href: "/register" }}
           >
-            {/* NEW (update 02): no function yet. See LATER (Google sign-in) in GoogleButton. */}
-            <GoogleButton />
             <AuthField
               label="Email or phone"
               name="identifier"

@@ -34,7 +34,7 @@ export default function SearchExperience({
     return (
       <>
         <SearchResultsHeader>{emptyHeading}</SearchResultsHeader>
-        <Container className="pt-10 pb-24">{null}</Container>
+        <Container className="pt-10 pb-24 max-md:pt-5 max-md:pb-14">{null}</Container>
       </>
     );
   }
@@ -48,7 +48,7 @@ export default function SearchExperience({
           <SearchHeading title={liveQuery} summary="Searching…" />
         )}
       </SearchResultsHeader>
-      <Container className="pt-10 pb-24">
+      <Container className="pt-10 pb-24 max-md:pt-5 max-md:pb-14">
         {introDone ? (
           results
         ) : (

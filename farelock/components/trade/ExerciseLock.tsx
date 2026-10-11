@@ -40,6 +40,10 @@ export type ExerciseSummary = {
  * on Escape. A <form method="dialog"> closes it when one of its buttons is
  * pressed.
  *
+ * Below md the same dialog is styled as a bottom sheet: pinned to the bottom
+ * edge, full width, top corners rounded, scrolling on its own past 85dvh,
+ * with room under the buttons for the home indicator.
+ *
  * The confirmation submits to a server action. The API rechecks the fare at
  * exercise time, so a moved fare is reported inline instead of settling at a
  * stale preview value.
@@ -85,9 +89,9 @@ export default function ExerciseLock({
         onClick={(event) => {
           if (event.target === event.currentTarget) event.currentTarget.close();
         }}
-        className="m-auto max-h-[calc(100dvh-3rem)] w-[min(480px,calc(100vw-3rem))] overflow-y-auto rounded-[2rem] border border-foreground/15 bg-card text-foreground backdrop:bg-pitch/60 backdrop:backdrop-blur-sm"
+        className="m-auto max-h-[calc(100dvh-3rem)] w-[min(480px,calc(100vw-3rem))] overflow-y-auto rounded-[2rem] border border-foreground/15 bg-card text-foreground backdrop:bg-pitch/60 backdrop:backdrop-blur-sm max-md:mx-0 max-md:mt-auto max-md:mb-0 max-md:max-h-[85dvh] max-md:w-full max-md:max-w-full max-md:rounded-none max-md:rounded-t-3xl max-md:border-x-0 max-md:border-b-0"
       >
-        <div className="flex flex-col gap-5 p-7">
+        <div className="flex flex-col gap-5 p-7 max-md:px-5 max-md:pt-6 max-md:pb-[max(16px,env(safe-area-inset-bottom))]">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-col gap-2">
               <Label>Exercise lock</Label>

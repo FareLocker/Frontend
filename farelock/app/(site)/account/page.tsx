@@ -36,7 +36,13 @@ type SearchParams = PageProps<"/account">["searchParams"];
  */
 export default function AccountPage({ searchParams }: PageProps<"/account">) {
   return (
-    <main className="flex-1">
+    <main className="flex-1 max-md:overflow-x-clip">
+      {/*
+       * overflow-x-clip (phone only): the membership ticket is drawn full size
+       * for its first paint, before it measures its box and scales down, and
+       * that must not widen the page. Clip, unlike hidden, adds no scrollbox,
+       * so the torn stub can still fly across the screen.
+       */}
       <Container className="flex flex-col gap-5 pt-10 pb-20 md:pt-14">
         <Suspense fallback={<AccountSkeleton />}>
           <AccountView searchParams={searchParams} />
@@ -59,7 +65,13 @@ async function AccountView({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <>
-      <header className="flex flex-wrap items-end justify-between gap-6 pb-5">
+      {/*
+       * Phone order (below md): membership card, this name block, the iMessage
+       * prompt, the three figures, Your locks, Activity, Account details. The
+       * grid and column wrappers further down dissolve (`max-md:contents`) so
+       * the membership card can move to the top; `max-md:order-*` sets the rest.
+       */}
+      <header className="flex flex-wrap items-end justify-between gap-6 pb-5 max-md:order-2 max-md:gap-5 max-md:pb-1">
         <div className="min-w-0">
           <Label className="text-muted">Account</Label>
           <h1 className="mt-4 text-[clamp(2.25rem,5vw,3.75rem)] leading-none font-light tracking-[-0.04em]">
@@ -85,7 +97,7 @@ async function AccountView({ searchParams }: { searchParams: SearchParams }) {
       </header>
 
       {user.messaging.status !== "connected" ? (
-        <Card tone="raised" size="md" className="flex flex-wrap items-center justify-between gap-4">
+        <Card tone="raised" size="md" className="flex flex-wrap items-center justify-between gap-4 max-md:order-3">
           <div>
             <h2 className={cardHeadingClass}>Connect iMessage</h2>
             <p className="mt-2 text-sm text-muted">
@@ -98,8 +110,8 @@ async function AccountView({ searchParams }: { searchParams: SearchParams }) {
         </Card>
       ) : null}
 
-      <div className="grid gap-5 sm:grid-cols-3">
-        <Card tone="raised" size="md">
+      <div className="grid gap-5 max-md:order-4 max-md:grid-cols-2 max-md:gap-3.5 md:grid-cols-3">
+        <Card tone="raised" size="md" className="max-md:col-span-2">
           <LabelValue
             label="Wallet balance"
             size="lg"
@@ -136,9 +148,9 @@ async function AccountView({ searchParams }: { searchParams: SearchParams }) {
         </Card>
       </div>
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="flex min-w-0 flex-col gap-5">
-          <Card>
+      <div className="grid items-start gap-5 max-md:contents lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-5 max-md:contents">
+          <Card className="max-md:order-5">
             <div className="flex items-baseline justify-between gap-4">
               <h2 className={cardHeadingClass}>Your locks</h2>
               {account.locks.length ? (
@@ -155,9 +167,9 @@ async function AccountView({ searchParams }: { searchParams: SearchParams }) {
            * data from lib/transactions.ts. The backend already has
            * GET /users/{id}/wallet/transactions?entry_type=… to wire in there.
            */}
-          <ActivityCard type={parseTransactionType(type)} />
+          <ActivityCard type={parseTransactionType(type)} className="max-md:order-6" />
 
-          <section aria-label="Membership card" className="flex flex-col gap-4 pt-5">
+          <section aria-label="Membership card" className="flex flex-col gap-4 pt-5 max-md:order-1 max-md:gap-3.5 max-md:pt-0">
             <Label className="text-muted">Membership card</Label>
             <TicketDemo
               ticket={{
@@ -173,7 +185,7 @@ async function AccountView({ searchParams }: { searchParams: SearchParams }) {
           </section>
         </div>
 
-        <aside aria-label="Account details" className="flex min-w-0 flex-col gap-5">
+        <aside aria-label="Account details" className="flex min-w-0 flex-col gap-5 max-md:order-7">
           <Card>
             <h2 className={cardHeadingClass}>Account details</h2>
             <DetailList>

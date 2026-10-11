@@ -2,7 +2,7 @@ import { useId, type ComponentProps, type ReactNode } from "react";
 
 /** The look of a text box. Exported so other kinds of field can match it. */
 export const fieldInputClass =
-  "h-[52px] w-full rounded-2xl border border-foreground/15 bg-pitch px-[18px] text-[0.95rem] placeholder:text-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
+  "h-[52px] w-full rounded-2xl border border-foreground/15 bg-pitch px-[18px] text-[0.95rem] placeholder:text-muted/80 max-md:text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground";
 
 /**
  * Everything around a form control: its label, an "Optional" tag, a hint

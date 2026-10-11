@@ -1,15 +1,25 @@
 import { getCurrentUser } from "@/lib/auth";
+import HeaderMenu from "./HeaderMenu";
 import LoginLink from "./LoginLink";
 import PillLink from "./PillLink";
 import UserButton from "./UserButton";
 
 const navClass = "flex flex-wrap items-center gap-2 lg:gap-4";
 
+/** The phone menu's rows: the same destinations as the signed-in pills. */
+const signedInLinks = [
+  { label: "Wallet", href: "/wallet" },
+  { label: "Account", href: "/account" },
+];
+
 /**
  * The header buttons. Which set shows depends on whether someone is signed in:
  *
  *   signed out: Log in
  *   signed in:  Wallet, Account
+ *
+ * Signed in, a phone gets one menu button instead of the pills (HeaderMenu);
+ * its rows go to the same places, in the same order.
  */
 export default async function HeaderNav() {
   const user = await getCurrentUser();
@@ -17,10 +27,10 @@ export default async function HeaderNav() {
   return (
     <nav aria-label="Main" className={navClass}>
       {user ? (
-        <>
-          <PillLink href="/wallet">Wallet</PillLink>
-          <UserButton />
-        </>
+        <HeaderMenu links={signedInLinks}>
+          <PillLink href="/wallet" className="max-md:hidden">Wallet</PillLink>
+          <UserButton className="max-md:hidden" />
+        </HeaderMenu>
       ) : (
         <LoginLink />
       )}

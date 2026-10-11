@@ -10,7 +10,7 @@ const toneClass = {
 } as const;
 
 const sizeClass = {
-  lg: "rounded-[2rem] p-7 sm:px-8",
+  lg: "rounded-[2rem] p-7 max-md:rounded-3xl max-md:p-[22px] md:px-8",
   md: "rounded-3xl px-[22px] py-5",
 } as const;
 

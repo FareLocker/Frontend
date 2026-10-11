@@ -15,6 +15,10 @@ import FareTradeChart, { type ChartLock } from "./FareTradeChart";
 const statLabel =
   "text-[11px] font-semibold uppercase tracking-[0.1em] text-muted";
 
+/** Phone: the three tags share one row, each shortening with an ellipsis. */
+const heroTag =
+  "max-md:min-w-0 max-md:shrink max-md:truncate max-md:px-2 max-md:py-[7px] max-md:text-[11px] max-md:tracking-[-0.02em]";
+
 /**
  * The big black panel at the top of the trading page: which flight this is,
  * its fare history as a dotted chart, and the fare in a glass bar.
@@ -25,13 +29,20 @@ const statLabel =
  * it was bought and the locked fare, a key in the corner says what the two
  * lines are, and the glass bar adds the locked fare beside today's. Once the lock has ended, the "Live fare" tag gives way to
  * its status and the bar shows how it ended.
+ *
+ * On a phone (below md) the labels sit in their own blocks above the chart,
+ * which fills the bottom 56% of the panel, so nothing prints over its dots;
+ * the airline, flight and cabin tags stay on one row and shorten with an
+ * ellipsis if they must.
  */
 export default function FareTradeHero({
   fare,
   lock = null,
+  className = "",
 }: {
   fare: FareDetail;
   lock?: Lock | null;
+  className?: string;
 }) {
   const points = fare.history.map((point) => point.amount);
   const hasChart = points.length >= 2;
@@ -41,32 +52,32 @@ export default function FareTradeHero({
   return (
     <section
       aria-label="Fare history"
-      className="pixel-grid-lg relative flex min-h-[580px] flex-col justify-between gap-10 overflow-hidden rounded-[2rem] border border-foreground/10 bg-pitch p-6 sm:p-8"
+      className={`pixel-grid-lg relative flex min-h-[580px] flex-col justify-between gap-10 overflow-hidden rounded-[2rem] border border-foreground/10 bg-pitch p-6 max-md:min-h-[600px] max-md:gap-8 max-md:rounded-3xl max-md:p-5 md:p-8 ${className}`}
     >
       {hasChart ? (
         <FareTradeChart points={points} lock={mark ?? undefined} />
       ) : null}
 
-      <div className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-        <div className="flex min-w-0 flex-col gap-2.5">
+      <div className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4 max-md:flex-col max-md:flex-nowrap max-md:gap-3.5">
+        <div className="flex min-w-0 flex-col gap-2.5 max-md:w-full max-md:gap-2">
           <Label>Fare history</Label>
-          <h1 className="text-[clamp(1.9rem,3.2vw,2.6rem)] leading-[1.08] tracking-[-0.04em]">
+          <h1 className="text-[clamp(1.9rem,3.2vw,2.6rem)] leading-[1.08] tracking-[-0.04em] max-md:text-[1.75rem] max-md:[overflow-wrap:anywhere]">
             {fare.depart.city} to {fare.arrive.city}
           </h1>
-          <p className="text-muted">
+          <p className="text-muted max-md:text-[0.9rem]">
             {formatDate(fare.depart.localTime)} ·{" "}
             {formatTime(fare.depart.localTime)} to{" "}
             {formatTime(fare.arrive.localTime)} ·{" "}
             {formatStops(fare.stopAirports)}
           </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Tag>{fare.airlineName}</Tag>
-            <Tag>{fare.flightNumber}</Tag>
-            <Tag>{fare.cabinClass}</Tag>
+          <div className="flex flex-wrap gap-2 pt-1 max-md:min-w-0 max-md:flex-nowrap max-md:gap-[5px]">
+            <Tag className={heroTag}>{fare.airlineName}</Tag>
+            <Tag className={heroTag}>{fare.flightNumber}</Tag>
+            <Tag className={heroTag}>{fare.cabinClass}</Tag>
           </div>
         </div>
 
-        <div className="ml-auto flex flex-col items-end gap-2.5">
+        <div className="ml-auto flex flex-col items-end gap-2.5 max-md:ml-0 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:gap-y-2">
           {ended ? (
             <p className="flex items-center gap-2.5 rounded-full border border-foreground/50 bg-card/80 px-4 py-[7px] text-xs font-bold uppercase tracking-[0.05em] backdrop-blur-sm">
               <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-faint" />
@@ -99,9 +110,9 @@ export default function FareTradeHero({
           {lock && mark ? (
             <ul
               aria-label="Chart key"
-              className="flex flex-col items-end gap-1.5 text-xs text-muted"
+              className="flex flex-col items-end gap-1.5 text-xs text-muted max-md:max-w-full max-md:basis-full max-md:items-start max-md:self-start max-md:rounded-xl max-md:bg-card/80 max-md:px-3 max-md:py-2.5 max-md:backdrop-blur-md"
             >
-              <li className="flex items-center gap-2.5">
+              <li className="flex items-center gap-2.5 max-md:flex-row-reverse max-md:justify-end">
                 <span>
                   Lock bought{" "}
                   <span className="font-semibold text-foreground">
@@ -112,7 +123,7 @@ export default function FareTradeHero({
                   <span className="h-3.5 border-l-2 border-dashed border-foreground" />
                 </span>
               </li>
-              <li className="flex items-center gap-2.5">
+              <li className="flex items-center gap-2.5 max-md:flex-row-reverse max-md:justify-end">
                 <span>
                   Your locked fare{" "}
                   <span className="font-semibold text-foreground">
@@ -136,13 +147,13 @@ export default function FareTradeHero({
         </p>
       )}
 
-      <div className="relative flex flex-wrap items-center justify-between gap-x-8 gap-y-3 rounded-3xl border border-foreground/15 bg-card/60 px-6 py-[22px] backdrop-blur-xl sm:px-[30px]">
+      <div className="relative flex flex-wrap items-center justify-between gap-x-8 gap-y-3 rounded-3xl border border-foreground/15 bg-card/60 px-6 py-[22px] backdrop-blur-xl max-md:flex-col max-md:items-start max-md:gap-3.5 max-md:rounded-[20px] max-md:px-5 max-md:py-[18px] md:px-[30px]">
         <p
           className={`text-[clamp(3rem,6vw,4.75rem)] leading-none font-extralight tracking-[-0.05em] tabular-nums ${ended ? "text-soft" : ""}`}
         >
           {formatMoney(lock?.fare ?? fare.fare)}
         </p>
-        <dl className="flex flex-wrap justify-end gap-x-9 gap-y-3 text-right">
+        <dl className="flex flex-wrap justify-end gap-x-9 gap-y-3 text-right max-md:grid max-md:w-full max-md:grid-cols-2 max-md:gap-x-7 max-md:text-left">
           {ended ? (
             <>
               <Stat
@@ -193,7 +204,7 @@ function Stat({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className="flex flex-col items-end gap-1.5 max-md:items-start">
       <dt className={statLabel}>{label}</dt>
       <dd className="text-[13px] font-medium">{children}</dd>
     </div>
