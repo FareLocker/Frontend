@@ -1,22 +1,23 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 /** How long a quote stands before it is refreshed. */
 const QUOTE_SECONDS = 90;
 
+/** Dispatched when the countdown ends so LockTicket can re-price at the current strike. */
+export const QUOTE_REFRESH_EVENT = "farelock:quote-refresh";
+
 /**
  * "Quote refreshes in 1:24": counts down from a minute and a half, then
- * starts again.
+ * reloads the fare page and asks LockTicket to re-price.
  *
- * LATER (quote refresh): nothing is fetched yet, so the fee on the page stays
- * the same when the count restarts. When the backend exists, the marked line
- * below is where to ask for a new fare and lock fee. At that point the
- * backend should also say when each quote runs out, and this should count
- * down to that time rather than to its own 90 seconds, so the page and the
- * server can never disagree about whether a quote is still good.
+ * The countdown is local. LATER: prefer a quote expiry from the backend so
+ * the page and the server never disagree about whether a quote is still good.
  */
 export default function QuoteTimer() {
+  const router = useRouter();
   const [secondsLeft, setSecondsLeft] = useState(QUOTE_SECONDS);
 
   useEffect(() => {
@@ -27,14 +28,17 @@ export default function QuoteTimer() {
     const tick = () => {
       if (Date.now() >= refreshAt) {
         refreshAt = Date.now() + QUOTE_SECONDS * 1000;
-        // LATER (quote refresh): fetch the new fare and lock fee here.
+        if (document.visibilityState !== "hidden") {
+          router.refresh();
+          window.dispatchEvent(new Event(QUOTE_REFRESH_EVENT));
+        }
       }
       setSecondsLeft(Math.ceil((refreshAt - Date.now()) / 1000));
     };
 
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [router]);
 
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = String(secondsLeft % 60).padStart(2, "0");

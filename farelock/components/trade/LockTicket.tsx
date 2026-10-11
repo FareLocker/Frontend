@@ -8,6 +8,7 @@ import DetailList, { DetailRow } from "@/components/DetailList";
 import PillLink, { solidButtonClass } from "@/components/PillLink";
 import { formatDate, formatMoney, formatTime } from "@/lib/format";
 import type { FareDetail, Money } from "@/types/fare";
+import { QUOTE_REFRESH_EVENT } from "./QuoteTimer";
 
 /** Wait this long after the last keystroke before re-pricing. */
 const QUOTE_DEBOUNCE_MS = 350;
@@ -18,7 +19,8 @@ const QUOTE_DEBOUNCE_MS = 350;
  * this fare yet; once they do, HeldLockCard takes its place.
  *
  * The locked fare starts at today's fare and can be edited. Editing
- * re-prices the fee (debounced) via the option model.
+ * re-prices the fee (debounced) via the option model. When the quote timer
+ * expires, the fee is re-priced at the current strike.
  *
  * A lock has no length to choose. It runs until the flight departs.
  * FareLocker sells the lock only, never the flight, so there is no
@@ -58,6 +60,13 @@ function LockTicketForm({
   const [quoting, setQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
+  // Pick up the server fee when still locking at today's market fare.
+  useEffect(() => {
+    if (strikeCents !== fare.fare.amount) return;
+    setFee(initialFee);
+  }, [initialFee, strikeCents, fare.fare.amount]);
+
+  // Debounced re-price while the locked fare is being edited.
   useEffect(() => {
     const parsed = parseDraftCents(draft);
     if (parsed === null) {
@@ -75,24 +84,9 @@ function LockTicketForm({
     setQuoting(true);
     setQuoteError(null);
     const handle = window.setTimeout(async () => {
-      const result = await quoteLockAtStrike({
-        origin: fare.depart.airportCode,
-        destination: fare.arrive.airportCode,
-        departureDate: fare.depart.localTime.slice(0, 10),
-        flightNumber: fare.flightNumber,
-        fareCents: fare.fare.amount,
-        strikeCents: parsed,
-      });
+      const next = await fetchQuote(fare, parsed, currency);
       if (cancelled) return;
-      if ("error" in result) {
-        setQuoteError(result.error);
-        setQuoting(false);
-        return;
-      }
-      setStrikeCents(parsed);
-      setFee({ amount: result.feeCents, currency });
-      setQuoteError(null);
-      setQuoting(false);
+      applyQuoteResult(next, parsed, setStrikeCents, setFee, setQuoteError, setQuoting);
     }, QUOTE_DEBOUNCE_MS);
 
     return () => {
@@ -103,12 +97,31 @@ function LockTicketForm({
     draft,
     strikeCents,
     currency,
-    fare.depart.airportCode,
-    fare.arrive.airportCode,
-    fare.depart.localTime,
-    fare.flightNumber,
-    fare.fare.amount,
+    fare,
   ]);
+
+  // When the quote countdown ends, re-price at the strike currently shown.
+  useEffect(() => {
+    let cancelled = false;
+
+    const onRefresh = () => {
+      const parsed = parseDraftCents(draft);
+      if (parsed === null) return;
+
+      setQuoting(true);
+      setQuoteError(null);
+      void fetchQuote(fare, parsed, currency).then((next) => {
+        if (cancelled) return;
+        applyQuoteResult(next, parsed, setStrikeCents, setFee, setQuoteError, setQuoting);
+      });
+    };
+
+    window.addEventListener(QUOTE_REFRESH_EVENT, onRefresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(QUOTE_REFRESH_EVENT, onRefresh);
+    };
+  }, [draft, currency, fare]);
 
   const lockedFare: Money = { amount: strikeCents, currency };
   const checkoutHref =
@@ -195,6 +208,39 @@ function LockTicketForm({
       </p>
     </Card>
   );
+}
+
+async function fetchQuote(fare: FareDetail, strikeCents: number, currency: string) {
+  return quoteLockAtStrike({
+    origin: fare.depart.airportCode,
+    destination: fare.arrive.airportCode,
+    departureDate: fare.depart.localTime.slice(0, 10),
+    flightNumber: fare.flightNumber,
+    fareCents: fare.fare.amount,
+    strikeCents,
+  }).then((result) => ({ result, currency }));
+}
+
+function applyQuoteResult(
+  {
+    result,
+    currency,
+  }: Awaited<ReturnType<typeof fetchQuote>>,
+  strikeCents: number,
+  setStrikeCents: (n: number) => void,
+  setFee: (fee: Money) => void,
+  setQuoteError: (error: string | null) => void,
+  setQuoting: (quoting: boolean) => void,
+) {
+  if ("error" in result) {
+    setQuoteError(result.error);
+    setQuoting(false);
+    return;
+  }
+  setStrikeCents(strikeCents);
+  setFee({ amount: result.feeCents, currency });
+  setQuoteError(null);
+  setQuoting(false);
 }
 
 /** Whole dollars when even, otherwise two decimals — matches formatMoney. */
