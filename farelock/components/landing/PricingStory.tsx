@@ -12,20 +12,13 @@ function Dim({ children }: { children: ReactNode }) {
 
 export default function PricingStory() {
   return (
-    <SplitSection id="pricing" label="How the fee is set" ruleAbove={false}>
-      <div className="flex flex-col items-start gap-10">
-        <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] leading-[1.2] tracking-[-0.02em]">
-          Priced like an option, <Dim>because it is one.</Dim> A FareLock is
-          protection on a fare you already paid, with a <Dim>set strike</Dim>{" "}
-          and a <Dim>deadline</Dim> at departure. That is an option, so we price
-          it with an option model instead of a <Dim>flat markup</Dim>.
-        </h2>
-
-        {/* TODO: replace with the fare price tree diagram. */}
-        <div className="flex h-[280px] items-center justify-center self-stretch border border-dashed border-foreground/40 p-4 text-center text-[0.7rem] uppercase tracking-[0.05em] text-muted">
-          [ Diagram: fare price tree ]
-        </div>
-      </div>
+    <SplitSection id="pricing" label="How the fee is set">
+      <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] leading-[1.2] tracking-[-0.02em]">
+        Priced like an option, <Dim>because it is one.</Dim> A FareLock is
+        protection on a fare you already paid, with a <Dim>set strike</Dim> and
+        a <Dim>deadline</Dim> at departure. That is an option, so we price it
+        with an option model instead of a <Dim>flat markup</Dim>.
+      </h2>
     </SplitSection>
   );
 }
