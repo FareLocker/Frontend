@@ -1,17 +1,38 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Background from "@/components/Background";
+import { SearchNavigationProvider } from "@/components/search/SearchNavigation";
 
 const siteName = "FareLocker";
 const title = "FareLocker: never overpay for a flight";
 const description =
   "Lock today's fare for a small fee. If the price goes up, you still pay the locked price. If it goes down, you pay less.";
 
+/**
+ * Host for absolute og/twitter URLs. Baked in at `next build`.
+ * Docker often sets NEXT_PUBLIC_SITE_URL to "" when the build arg is unset —
+ * `??` does not treat that as missing, so we treat blank as missing too.
+ */
+function siteUrl(): URL {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const fallback = "https://farelocker.nyc";
+  try {
+    return new URL(raw || fallback);
+  } catch {
+    return new URL(fallback);
+  }
+}
+
+const shareImage = {
+  url: "/og.png",
+  width: 1200,
+  height: 630,
+  alt: siteName,
+  type: "image/png",
+} as const;
+
 export const metadata: Metadata = {
-  // Absolute URLs for og/twitter images. Override with NEXT_PUBLIC_SITE_URL in prod.
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://farelocker.nyc",
-  ),
+  metadataBase: siteUrl(),
   title: {
     default: title,
     template: `%s | ${siteName}`,
@@ -27,13 +48,13 @@ export const metadata: Metadata = {
     title,
     description,
     locale: "en_US",
-    // Image: app/opengraph-image.png (1200×630, logo on site background).
+    images: [shareImage],
   },
   twitter: {
     card: "summary_large_image",
     title,
     description,
-    // Image: app/twitter-image.png (same asset as the Open Graph card).
+    images: [shareImage],
   },
 };
 
@@ -55,7 +76,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
         <Background />
-        {children}
+        {/*
+         * Above every route group so Header/SearchForm work on pages that
+         * sit outside (site)/ — notably app/not-found.tsx.
+         */}
+        <SearchNavigationProvider>{children}</SearchNavigationProvider>
       </body>
     </html>
   );

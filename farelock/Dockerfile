@@ -6,8 +6,9 @@ RUN bun install --frozen-lockfile
 FROM deps AS build
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# Baked into og/twitter absolute image URLs at build time.
-ARG NEXT_PUBLIC_SITE_URL
+# Optional. When unset/blank, the app falls back to https://farelocker.nyc.
+# Pass e.g. --build-arg NEXT_PUBLIC_SITE_URL=https://farelocker.nyc
+ARG NEXT_PUBLIC_SITE_URL=
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN bun run build
 
