@@ -30,3 +30,16 @@ export async function addFunds(userId: string, dollars: string) {
     body: JSON.stringify({ amount_cents: toCents(dollars) }),
   });
 }
+
+/**
+ * Takes money out of the wallet. The backend refuses (422 "Insufficient
+ * funds") if it is more than the balance, and records a "withdrawal" row in
+ * the ledger, which the account page's Activity card then shows.
+ */
+export async function withdrawFunds(userId: string, amountCents: number) {
+  await api(`/users/${userId}/wallet/withdraw`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ amount_cents: amountCents }),
+  });
+}

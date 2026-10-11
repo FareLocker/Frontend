@@ -33,6 +33,36 @@ export function formatDate(localTime: string): string {
   return `${part("weekday")} ${part("day")} ${part("month")}`;
 }
 
+/**
+ * "10 Oct 2026" from a moment in time (a ledger timestamp, say).
+ *
+ * `timeZone` is an IANA name such as "UTC". Left out, it is the time zone of
+ * whatever is running the code: the reader's, in a browser. On the server
+ * always pass one, or the day shown depends on where the server happens to
+ * be. See components/LocalDate.tsx, which handles both.
+ */
+export function formatDay(when: Date, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone,
+  }).format(when);
+}
+
+/** "10 Oct 2026, 19:21" from a moment in time. `timeZone` as for formatDay. */
+export function formatDayAndTime(when: Date, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).format(when);
+}
+
 /** "7h 15m" */
 export function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
