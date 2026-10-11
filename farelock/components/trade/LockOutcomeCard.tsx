@@ -2,7 +2,6 @@ import Card from "@/components/Card";
 import DetailList, { DetailRow } from "@/components/DetailList";
 import { formatMoney } from "@/lib/format";
 import { fareDrop, maxGain } from "@/lib/locks";
-import { TBD } from "@/lib/placeholders";
 import type { Lock } from "@/types/lock";
 
 /**
@@ -63,7 +62,7 @@ function outcome(lock: Lock): string {
     case "expired":
       return paid
         ? "Exercised automatically at departure. The payout went into your wallet."
-        : `Exercised automatically at departure. The fare was above your locked fare, so the lock paid nothing. ${TBD.refundTerms}`;
+        : "Exercised automatically at departure. The fare was above your locked fare, so the lock paid nothing.";
     case "pending_verification":
       return "You exercised the lock. We are checking the payout, and it goes into your wallet as soon as that is done.";
     default:

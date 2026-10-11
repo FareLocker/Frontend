@@ -1,7 +1,6 @@
 import Card from "@/components/Card";
 import PillLink from "@/components/PillLink";
 import { formatDate, formatTime } from "@/lib/format";
-import { TBD } from "@/lib/placeholders";
 import type { Lock } from "@/types/lock";
 
 const heading = "text-[1.1rem] font-semibold tracking-[-0.02em]";
@@ -26,7 +25,7 @@ export function AutoExerciseCard({
         When the flight departs, {formatDate(lock.departs)} at{" "}
         {formatTime(lock.departs)}, the lock is exercised for you. If the fare
         is below your locked fare then, the difference goes into your wallet.
-        If not, it pays nothing. {TBD.refundTerms}
+        If not, it pays nothing.
       </p>
     </Card>
   );

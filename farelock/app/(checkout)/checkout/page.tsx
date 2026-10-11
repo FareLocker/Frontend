@@ -153,7 +153,7 @@ async function Checkout({ searchParams }: { searchParams: SearchParams }) {
               </Outcome>
               <Outcome when="If you do nothing">
                 When the flight departs, the lock is exercised for you and
-                pays whatever it is worth then. {TBD.refundTerms}
+                pays whatever it is worth then.
               </Outcome>
             </dl>
           </Card>

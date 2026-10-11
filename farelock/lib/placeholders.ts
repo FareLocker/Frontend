@@ -11,8 +11,6 @@
 export const TBD = {
   /** The most FareLocker pays out on one lock, e.g. "$200". */
   coverLimit: "$164",
-  /** What happens to the fee if the lock expires with no payout. */
-  refundTerms: "[REFUND TERMS]",
   /** How long a lock's price or an exercise payout is held, e.g. "2 minutes". */
   quoteHold: "[HOLD TIME]",
   /** Taxes and charges on a lock fee, if any, e.g. "$0". */
